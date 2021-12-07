@@ -10,8 +10,13 @@ def read_file(input_path: str):
     return np.array(list(map(int, open(input_path).readlines()[0].strip().split(","))))
 
 
-def extend_birth_planning(birth_planning, num_days, start_day, num_births=1, interval=7):
-    days = [start_day + i * interval for i in range(1 + ((num_days - 1 - start_day) // interval))]
+def extend_birth_planning(
+    birth_planning, num_days, start_day, num_births=1, interval=7
+):
+    days = [
+        start_day + i * interval
+        for i in range(1 + ((num_days - 1 - start_day) // interval))
+    ]
     birth_planning[days] += num_births
     return birth_planning
 
