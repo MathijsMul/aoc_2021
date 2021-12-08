@@ -56,8 +56,8 @@ def construct_mapping(mapping, length, signal):
     return mapping
 
 
-def get_mapping(*args):
-    all_signals = args[0] + args[1]
+def get_mapping(input_signals, output_signals):
+    all_signals = input_signals + output_signals
     all_lengths = [len(s) for s in all_signals]
     int2set = defaultdict(set)
 
