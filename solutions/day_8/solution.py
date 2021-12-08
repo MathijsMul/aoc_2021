@@ -26,54 +26,53 @@ def solve_1(input_list):
     return sum(unique_counter[i] for i in unique_lengths)
 
 
+def construct_mapping(mapping, length, signal):
+    if length == 2:
+        mapping[1] = signal
+    elif length == 3:
+        mapping[7] = signal
+    elif length == 4:
+        mapping[4] = signal
+    elif length == 5:
+        if mapping[1].issubset(signal) or len(signal.intersection(mapping[1])) == 2:
+            mapping[3] = signal
+        elif signal.issubset(mapping[9]):
+            mapping[5] = signal
+        elif signal not in mapping.values():
+            mapping[2] = signal
+    elif length == 6:
+        if mapping[4].issubset(signal):
+            mapping[9] = signal
+        if (
+            len(signal.intersection(mapping[1])) == 1
+            or len(signal.intersection(mapping[4])) == 2
+        ):
+            mapping[6] = signal
+        elif len(signal.intersection(mapping[4])) == 3:
+            mapping[0] = signal
+    elif length == 7:
+        mapping[8] = signal
+
+    return mapping
+
+
 def get_mapping(*args):
     all_signals = args[0] + args[1]
     all_lengths = [len(s) for s in all_signals]
-
     int2set = defaultdict(set)
 
-    for idx, (length, signal) in enumerate(zip(all_lengths, all_signals)):
-        if length == 2:
-            int2set[1] = signal
-        if length == 3:
-            int2set[7] = signal
-        if length == 4:
-            int2set[4] = signal
-        if length == 7:
-            int2set[8] = signal
-
-    for idx, (length, signal) in enumerate(zip(all_lengths, all_signals)):
-        if length == 6:
-            if int2set[4].issubset(signal):
-                int2set[9] = signal
-            if (
-                len(signal.intersection(int2set[1])) == 1
-                or len(signal.intersection(int2set[4])) == 2
-            ):
-                int2set[6] = signal
-            elif len(signal.intersection(int2set[4])) == 3:
-                int2set[0] = signal
-        if length == 5:
-            if int2set[1].issubset(signal) or len(signal.intersection(int2set[1])) == 2:
-                int2set[3] = signal
-            elif signal.issubset(int2set[9]):
-                int2set[5] = signal
-            elif signal not in int2set.values():
-                int2set[2] = signal
+    while any(signal not in int2set.values() for signal in all_signals):
+        for length, signal in zip(all_lengths, all_signals):
+            int2set = construct_mapping(int2set, length, signal)
 
     return {"".join(sorted(int2set[i])): str(i) for i in int2set}
 
 
-def solve_2(input):
+def solve_2(input_list):
     sum = 0
-    for item in input:
-        mapping = get_mapping(*item)
-        signals = item[1]
-        digit = ""
-        for signal in signals:
-            ordered_signal = "".join(sorted(signal))
-            digit += str(mapping[ordered_signal])
-        sum += int(digit)
+    for input_sig, output_sig in input_list:
+        mapping = get_mapping(input_sig, output_sig)
+        sum += int("".join(mapping["".join(sorted(signal))] for signal in output_sig))
     return sum
 
 
@@ -86,4 +85,4 @@ if __name__ == "__main__":
 
     # Part 2
     assert solve_2(sample_input) == 61229, solve_2(sample_input)
-    assert solve_2(real_input) == 1055164
+    assert solve_2(real_input) == 1055164, solve_2(real_input)
