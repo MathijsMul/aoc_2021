@@ -1,5 +1,6 @@
 import os
 from collections import Counter, defaultdict
+import numpy as np
 
 
 def read_file(input_path: str):
@@ -17,12 +18,26 @@ def read_file(input_path: str):
     return all_input
 
 
+def get_digits(input_path: str = "../../data/day_8/digits.csv"):
+    with open(input_path, encoding='utf-8-sig') as f:
+        return np.genfromtxt(f, dtype=int, delimiter=',')
+
+
+def get_digit_lengths(digit_matrix):
+    return Counter(digit_matrix.sum(0))
+
+
+def get_unique_lengths(digit_matrix):
+    counts = get_digit_lengths(digit_matrix)
+    return [length for length in counts if counts[length] == 1]
+
+
 def solve_1(input_list):
     unique_counter = Counter()
     for _, output in input_list:
         for digit in output:
             unique_counter[len(digit)] += 1
-    unique_lengths = [2, 4, 3, 7]
+    unique_lengths = get_unique_lengths(get_digits())
     return sum(unique_counter[i] for i in unique_lengths)
 
 
@@ -80,9 +95,12 @@ if __name__ == "__main__":
     sample_input = read_file("data/day_8/sample.txt")
     real_input = read_file("data/day_8/input.txt")
 
+    print(get_digits())
+    # exit()
+
     assert solve_1(sample_input) == 26
     assert solve_1(real_input) == 495
 
     # Part 2
-    assert solve_2(sample_input) == 61229, solve_2(sample_input)
-    assert solve_2(real_input) == 1055164, solve_2(real_input)
+    assert solve_2(sample_input) == 61229
+    assert solve_2(real_input) == 1055164
