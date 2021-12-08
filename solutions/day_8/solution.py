@@ -1,5 +1,5 @@
 import os
-from collections import Counter
+from collections import Counter, defaultdict
 
 
 def read_file(input_path: str):
@@ -8,77 +8,60 @@ def read_file(input_path: str):
     )
     all_input = []
     for line in open(input_path).readlines():
-        parts = line.split("|")
-        input = parts[0].strip().split()
-        output = parts[1].strip().split()
-        all_input.append([input, output])
+        all_input.append(
+            [
+                [set(signal) for signal in part.strip().split()]
+                for part in line.split("|")
+            ]
+        )
     return all_input
 
 
-def solve_1(input):
+def solve_1(input_list):
     unique_counter = Counter()
-    for item in input:
-        # print(item[1])
-        for digit in item[1]:
+    for _, output in input_list:
+        for digit in output:
             unique_counter[len(digit)] += 1
-        # print(unique_counter)
-    unique_items = [2, 4, 3, 7]
-    return sum(unique_counter[i] for i in unique_items)
+    unique_lengths = [2, 4, 3, 7]
+    return sum(unique_counter[i] for i in unique_lengths)
 
 
 def get_mapping(*args):
     all_signals = args[0] + args[1]
     all_lengths = [len(s) for s in all_signals]
 
-    mapping = {}
+    int2set = defaultdict(set)
 
-    if 2 in all_lengths:
-        digit1 = all_signals[all_lengths.index(2)]
-        mapping["".join(sorted(digit1))] = "1"
-    if 3 in all_lengths:
-        digit7 = all_signals[all_lengths.index(3)]
-        mapping["".join(sorted(digit7))] = "7"
-    if 4 in all_lengths:
-        digit4 = all_signals[all_lengths.index(4)]
-        mapping["".join(sorted(digit4))] = "4"
-    if 7 in all_lengths:
-        digit8 = all_signals[all_lengths.index(7)]
-        mapping["".join(sorted(digit8))] = "8"
+    for idx, (length, signal) in enumerate(zip(all_lengths, all_signals)):
+        if length == 2:
+            int2set[1] = signal
+        if length == 3:
+            int2set[7] = signal
+        if length == 4:
+            int2set[4] = signal
+        if length == 7:
+            int2set[8] = signal
 
     for idx, (length, signal) in enumerate(zip(all_lengths, all_signals)):
         if length == 6:
-            if set(digit4).issubset(set(signal)):
-                digit9 = signal
-                mapping["".join(sorted(digit9))] = "9"
+            if int2set[4].issubset(signal):
+                int2set[9] = signal
+            if (
+                len(signal.intersection(int2set[1])) == 1
+                or len(signal.intersection(int2set[4])) == 2
+            ):
+                int2set[6] = signal
+            elif len(signal.intersection(int2set[4])) == 3:
+                int2set[0] = signal
         if length == 5:
-            if set(digit1).issubset(set(signal)):
-                digit3 = signal
-                mapping["".join(sorted(digit3))] = "3"
-            try:
-                if set(signal).issubset(set(digit9)):
-                    digit5 = signal
-                    mapping["".join(sorted(digit5))] = "5"
-            except UnboundLocalError:
-                continue
-        if length == 6:
-            if len(set(signal).intersection(set(digit1))) == 1:
-                digit6 = signal
-                mapping["".join(sorted(digit6))] = "6"
-            elif len(set(signal).intersection(set(digit4))) == 2:
-                digit6 = signal
-                mapping["".join(sorted(digit6))] = "6"
-            elif len(set(signal).intersection(set(digit4))) == 3:
-                digit0 = signal
-                mapping["".join(sorted(digit0))] = "0"
-        if length == 5:
-            if len(set(signal).intersection(set(digit1))) == 2:
-                digit3 = signal
-                mapping["".join(sorted(digit3))] = "3"
-            elif "".join(sorted(signal)) not in mapping:
-                digit2 = signal
-                mapping["".join(sorted(digit2))] = "2"
+            if int2set[1].issubset(signal) or len(signal.intersection(int2set[1])) == 2:
+                int2set[3] = signal
+            elif signal.issubset(int2set[9]):
+                int2set[5] = signal
+            elif signal not in int2set.values():
+                int2set[2] = signal
 
-    return mapping
+    return {"".join(sorted(int2set[i])): str(i) for i in int2set}
 
 
 def solve_2(input):
@@ -102,5 +85,5 @@ if __name__ == "__main__":
     assert solve_1(real_input) == 495
 
     # Part 2
-    assert solve_2(sample_input) == 61229
+    assert solve_2(sample_input) == 61229, solve_2(sample_input)
     assert solve_2(real_input) == 1055164
