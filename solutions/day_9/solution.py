@@ -1,5 +1,7 @@
 import os
 import numpy as np
+from itertools import product
+from functools import reduce
 
 
 def read_file(input_path: str):
@@ -45,38 +47,37 @@ def get_adjacent_indices(input_array, x, y):
 
 def get_basin_neighbors(input_array, x, y):
     neighbour_indices = get_adjacent_indices(input_array, x, y) + [(x, y)]
-    return [n for n in neighbour_indices if input_array[n[0], n[1]] != 9]
+    return {n for n in neighbour_indices if input_array[n[0], n[1]] != 9}
 
 
 def solve_2(input_array: np.ndarray):
     shape = input_array.shape
     basins = []
-    for x in range(shape[0]):
-        for y in range(shape[1]):
-            if input_array[x, y] != 9:
-                basin_neighbor_indices = set(get_basin_neighbors(input_array, x, y))
-                existing_basin = False
-                for basin in basins:
-                    for loc in basin_neighbor_indices:
-                        if loc in basin:
-                            basin.update(basin_neighbor_indices)
-                            existing_basin = True
+    for x, y in product(range(shape[0]), range(shape[1])):
+        if input_array[x, y] == 9:
+            continue
 
-                if not existing_basin:
-                    basins.append(basin_neighbor_indices)
+        basin_neighbor_indices = get_basin_neighbors(input_array, x, y)
+        existing_basin = False
+        for basin in basins:
+            if any(loc in basin for loc in basin_neighbor_indices):
+                basin.update(basin_neighbor_indices)
+                existing_basin = True
+
+        if not existing_basin:
+            basins.append(basin_neighbor_indices)
 
     while (
         not sum([len(b) for b in basins]) + len(np.argwhere(input_array == 9))
         == input_array.size
     ):
-        for idx1, basin1 in enumerate(basins):
-            for idx2, basin2 in enumerate(basins):
-                if idx2 > idx1 and len(basin1.intersection(basin2)) > 0:
-                    basin1.update(basin2)
-                    basin2.clear()
+        for idx_left, basin_left in enumerate(basins):
+            for idx_right, basin_right in enumerate(basins[idx_left + 1 :]):
+                if len(basin_left.intersection(basin_right)) > 0:
+                    basin_left.update(basin_right)
+                    basin_right.clear()
 
-    sizes = sorted([len(b) for b in basins], reverse=True)
-    return sizes[0] * sizes[1] * sizes[2]
+    return reduce(lambda a, b: a * b, sorted([len(b) for b in basins])[-3:])
 
 
 if __name__ == "__main__":
