@@ -21,107 +21,73 @@ def solve_1(input_array: np.ndarray):
             adjacent_nrs = get_adjacent_nrs(input_array, x, y)
             if min(adjacent_nrs) > input_array[x, y]:
                 min_bools[x, y] = 1
-
     return sum((min_bools * (input_array + 1)).flatten())
 
 
 def get_adjacent_nrs(input_array, x, y):
-    shape = input_array.shape
-    adjacent_nrs = []
-    if x != 0:
-        adjacent_nrs.append(input_array[x - 1, y])
-    if x != shape[0] - 1:
-        adjacent_nrs.append(input_array[x + 1, y])
-    if y != 0:
-        adjacent_nrs.append(input_array[x, y - 1])
-    if y != shape[1] - 1:
-        adjacent_nrs.append(input_array[x, y + 1])
-    return adjacent_nrs
+    adjacent_indices = get_adjacent_indices(input_array, x, y)
+    return [input_array[loc[0], loc[1]] for loc in adjacent_indices]
 
 
 def get_adjacent_indices(input_array, x, y):
     shape = input_array.shape
     adjacent_indices = []
     if x != 0:
-        adjacent_indices.append([x - 1, y])
+        adjacent_indices.append((x - 1, y))
     if x != shape[0] - 1:
-        adjacent_indices.append([x + 1, y])
+        adjacent_indices.append((x + 1, y))
     if y != 0:
-        adjacent_indices.append([x, y - 1])
+        adjacent_indices.append((x, y - 1))
     if y != shape[1] - 1:
-        adjacent_indices.append([x, y + 1])
+        adjacent_indices.append((x, y + 1))
     return adjacent_indices
 
 
 def get_basin_neighbors(input_array, x, y):
-    neighbour_indices = get_adjacent_indices(input_array, x, y)
-    return [n for n in neighbour_indices if input_array[n[0],n[1]] != 9]
+    neighbour_indices = get_adjacent_indices(input_array, x, y) + [(x, y)]
+    return [n for n in neighbour_indices if input_array[n[0], n[1]] != 9]
 
 
 def solve_2(input_array: np.ndarray):
     shape = input_array.shape
     basins = []
-    # added = np.zeros(shape)
-    added = []
     for x in range(shape[0]):
         for y in range(shape[1]):
-            if input_array[x, y] == 9:
-                continue
-            # if added[x,y] == 1:
-            #     continue
-            else:
-                # neighbors = get_basin_neighbors(input_array, x, y)
-                current_locs = [[x,y]] + get_basin_neighbors(input_array, x, y)
-                current_locs = [",".join(map(str, l)) for l in current_locs]
-                found = False
+            if input_array[x, y] != 9:
+                basin_neighbor_indices = set(get_basin_neighbors(input_array, x, y))
+                existing_basin = False
                 for basin in basins:
-                    if any(loc in basin for loc in current_locs):
-                        for location in current_locs:
-                            basin.append(location)
-                            # if added[location[0], location[1]] != 1 and location not in basin:
-                            # if location not in basin and ",".join(map(str, location)) not in added:
-                            #if ",".join(map(str, location)) not in added:
-                            # if location not in added:
-                            #     basin.append(location)
-                            #     added.append(location)
-                                # basin.append(",".join(map(str, location)))
-                                # added[location[0], location[1]] = 1
-                                # added.append(",".join(map(str, location)))
-                        found = True
-                if not found:
-                    basins.append(current_locs)
+                    for loc in basin_neighbor_indices:
+                        if loc in basin:
+                            basin.update(basin_neighbor_indices)
+                            existing_basin = True
 
-    # print(basins)
-    # for basin in basins:
-    #     array = np.zeros(shape)
-    #     for loc in basin:
-    #         array[loc[0],loc[1]] = 1
-    #     print(array)
-    #     print("\n")
-    basins = [list(set(b)) for b in basins]
+                if not existing_basin:
+                    basins.append(basin_neighbor_indices)
 
-    basin_sizes = sorted([len(basin) for basin in basins], reverse = True)
-    print(basin_sizes)
+    while (
+        not sum([len(b) for b in basins]) + len(np.argwhere(input_array == 9))
+        == input_array.size
+    ):
+        for idx1, basin1 in enumerate(basins):
+            for idx2, basin2 in enumerate(basins):
+                if idx2 > idx1 and len(basin1.intersection(basin2)) > 0:
+                    basin1.update(basin2)
+                    basin2.clear()
 
-
-    assert sum(basin_sizes) + len(np.argwhere(input_array == 9)) == input_array.size
-
-    return basin_sizes[0] * basin_sizes[1] * basin_sizes[2]
+    sizes = sorted([len(b) for b in basins], reverse=True)
+    return sizes[0] * sizes[1] * sizes[2]
 
 
 if __name__ == "__main__":
     sample_input = read_file("data/day_9/sample.txt")
+    sample2_input = read_file("data/day_9/sample2.txt")
     real_input = read_file("data/day_9/input.txt")
 
     assert solve_1(sample_input) == 15
     assert solve_1(real_input) == 580
 
     # Part 2
-    # get_basins(sample_input)
-    # print(solve_2(sample_input))
     assert solve_2(sample_input) == 1134
-    print(solve_2(real_input))
-
-    # 770224 too low
-    # 557280
-    # assert solve_2(real_input) == ..., solve_2(real_input)
+    assert solve_2(sample2_input) == 1260
+    assert solve_2(real_input) == 856716
