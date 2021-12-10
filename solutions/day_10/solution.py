@@ -27,7 +27,7 @@ def score_2(points):
     return sum((5 ** idx) * point for idx, point in enumerate(points[::-1]))
 
 
-def solve_2(input_list):
+def solve(input_list):
     corrupt_scores, incomplete_scores = [], []
 
     for line in input_list:
@@ -58,9 +58,9 @@ if __name__ == "__main__":
     sample_input = read_file("data/day_10/sample.txt")
     real_input = read_file("data/day_10/input.txt")
 
-    assert solve_2(sample_input)[0] == 26397
-    assert solve_2(real_input)[0] == 166191
+    assert solve(sample_input)[0] == 26397
+    assert solve(real_input)[0] == 166191
 
     # Part 2
-    assert solve_2(sample_input)[1] == 288957
-    assert solve_2(real_input)[1] == 1152088313
+    assert solve(sample_input)[1] == 288957
+    assert solve(real_input)[1] == 1152088313
