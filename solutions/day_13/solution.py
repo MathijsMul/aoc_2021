@@ -16,8 +16,7 @@ def read_file(input_path: str):
             folds.append((int("x" in line), int(line.strip().split("=")[-1])))
     xcoords, ycoords = zip(*dots)
     array = np.zeros((max(ycoords) + 1, max(xcoords) + 1))
-    for loc in dots:
-        array[loc[1], loc[0]] = 1
+    array[ycoords, xcoords] = 1
     return array, folds
 
 
