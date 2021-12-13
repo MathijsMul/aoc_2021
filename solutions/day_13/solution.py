@@ -8,56 +8,51 @@ def read_file(input_path: str):
     input_path = os.path.join(
         os.path.abspath(os.path.dirname(__file__)), "..", "..", input_path
     )
-    dots = []
-    folds = []
+    dots, folds = [], []
     for line in open(input_path).readlines():
         if "," in line:
-            dots.append(list(map(int, line.strip().split(","))))
-        elif "fold along x" in line:
-            folds.append((0, int(line.strip().split("=")[-1])))
-        elif "fold along y" in line:
-            folds.append((1, int(line.strip().split("=")[-1])))
+            dots.append(tuple(map(int, line.strip().split(","))))
+        elif "fold" in line:
+            folds.append((int("x" in line), int(line.strip().split("=")[-1])))
     xcoords, ycoords = zip(*dots)
-    array = np.zeros((max(xcoords)+1, max(ycoords)+1))
+    array = np.zeros((max(ycoords) + 1, max(xcoords) + 1))
     for loc in dots:
-        array[loc[0],loc[1]] = 1
+        array[loc[1], loc[0]] = 1
     return array, folds
+
+
+def fold(dots, folds):
+    for axis, idx in folds:
+        dots = np.delete(dots, idx, axis)
+        left, right = np.split(dots, [idx], axis)
+        right_flipped = np.flip(right, axis)
+        right_flipped = np.pad(
+            right_flipped,
+            (
+                (left.shape[0] - right_flipped.shape[0], 0),
+                (left.shape[1] - right_flipped.shape[1], 0),
+            ),
+        )
+        dots = left + right_flipped
+    dots[dots > 0] = 1
+    return dots
 
 
 def solve_1(input):
     dots, folds = input
-    for dim, axis in folds[:1]:
-        if dim == 1:
-            left = dots[:,:axis]
-            right = dots[:,axis+1:]
-            right_flipped = np.flip(right, 1)
-        elif dim == 0:
-            left = dots[:axis,:]
-            right = dots[axis+1:,:]
-            right_flipped = np.flip(right, 0)
-        dots = left + right_flipped
+    dots = fold(dots, folds[:1])
     return len(np.argwhere(dots > 0))
 
 
-def solve_2(input):
-    dots, folds = input
-    for dim, axis in folds:
-        if dim == 1:
-            left = dots[:,:axis]
-            right = dots[:,axis+1:]
-            right_flipped = np.flip(right, 1)
-            if left.shape != right_flipped.shape:
-                right_flipped = np.pad(right_flipped, ((0, 0), (1, 0)))
-        elif dim == 0:
-            left = dots[:axis,:]
-            right = dots[axis+1:,:]
-            right_flipped = np.flip(right, 0)
-            assert left.shape == right_flipped.shape
+def visualize_dots(dot_array):
+    plt.imshow(dot_array)
+    plt.axis("off")
+    plt.show()
 
-        dots = left + right_flipped
-    dots[dots > 0] = 1
-    dots = dots.T
-    return dots
+
+def solve_2(input):
+    dots = fold(*input)
+    visualize_dots(dots)
 
 
 if __name__ == "__main__":
@@ -69,6 +64,4 @@ if __name__ == "__main__":
     assert solve_1(real_input) == 788
 
     # Part 2
-    code = solve_2(real_input)
-    plt.imshow(code)
-    plt.show()
+    solve_2(real_input)
