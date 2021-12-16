@@ -1,6 +1,7 @@
 import os
 from functools import reduce
 from dataclasses import dataclass
+from operator import add, mul, gt, lt, eq
 
 
 def read_file(input_path: str):
@@ -40,6 +41,18 @@ class Operator(Packet):
     size_type: int
     size_param: int
 
+    def apply(self, literals):
+        funcs = [add, mul, min, max, None, gt, lt, eq]
+        return reduce(funcs[self.type], [lit.value for lit in literals])
+
+    def satisfied(self, cum_length, lit_count):
+        return (
+            self.size_type == 0
+            and cum_length == self.size_param
+            or self.size_type == 1
+            and lit_count == self.size_param
+        )
+
 
 @dataclass
 class Literal(Packet):
@@ -58,31 +71,27 @@ def get_new_packet(sequence):
 def get_new_operator(sequence, type):
     length_type_id = int(sequence[6], 2)
     if length_type_id == 0:
-        size_param = int(sequence[7:22], 2)
         length = 22
     elif length_type_id == 1:
-        size_param = int(sequence[7:18], 2)
         length = 18
     return Operator(
         type=type,
         version=int(sequence[0:3], 2),
         size_type=length_type_id,
-        size_param=size_param,
+        size_param=int(sequence[7:length], 2),
         length=length,
     )
 
 
-def get_new_literal(sequence):
+def get_new_literal(sequence, idx=6, bin_str=""):
     """type, version, value, length"""
     version = int(sequence[0:3], 2)
-    bin_str = ""
-    idx = 6
 
     while sequence[idx] in ["1", "0"]:
         segment = sequence[idx : idx + 5]
         bin_str += segment[1:]
         idx += 5
-        if sequence[idx-5] == "0":
+        if sequence[idx - 5] == "0":
             break
 
     value = int("".join(bin_str), 2)
@@ -98,69 +107,38 @@ def parse(bin):
     return stack
 
 
-def apply_function(packet, input_packets):
-    args = ",".join(str(p.value) for p in input_packets if isinstance(p, Literal))
-    new_val = evaluate(f"func{packet.type}({args})")
-    new_len = sum(p.length for p in input_packets) + packet.length
+def apply_function(operator, input_literals):
+    new_val = operator.apply(input_literals)
+    new_len = sum(p.length for p in input_literals) + operator.length
     return Literal(type=4, version=0, value=new_val, length=new_len)
 
 
-def evaluate_functions(stacklist):
-    while len(stacklist) > 1:
+def evaluate_functions(stack):
+    while len(stack) > 1:
         new_stack = []
-        for idx, packet in enumerate(stacklist):
+        for idx, packet in enumerate(stack):
             applied = False
             if isinstance(packet, Operator):
                 cum_len, lit_count = 0, 0
-                for idx2, packet2 in enumerate(stacklist[idx + 1 :]):
+                for idx2, packet2 in enumerate(stack[idx + 1 :]):
                     if isinstance(packet2, Literal):
                         cum_len += packet2.length
                         lit_count += 1
-                        if (
-                            packet.size_type == 0
-                            and cum_len == packet.size_param
-                            or packet.size_type == 1
-                            and lit_count == packet.size_param
-                        ):
-                            input_packets = stacklist[idx + 1 : idx + idx2 + 2]
+                        if packet.satisfied(cum_len, lit_count):
+                            input_packets = stack[idx + 1 : idx + idx2 + 2]
                             new = apply_function(packet, input_packets)
                             new_stack.append(new)
-                            new_stack.extend(stacklist[idx + idx2 + 2 :])
+                            new_stack.extend(stack[idx + idx2 + 2 :])
                             applied = True
                             break
                     else:
                         break
             if applied:
-                stacklist = new_stack
+                stack = new_stack
                 break
             new_stack.append(packet)
 
-    return stacklist[0].value
-
-
-def evaluate(compstr):
-    def func0(*args):
-        return sum(args)
-
-    def func1(*args):
-        return reduce(lambda a, b: a * b, args)
-
-    def func2(*args):
-        return min(args)
-
-    def func3(*args):
-        return max(args)
-
-    def func5(*args):
-        return int(args[0] > args[1])
-
-    def func6(*args):
-        return int(args[0] < args[1])
-
-    def func7(*args):
-        return int(args[1] == args[0])
-
-    return eval(compstr)
+    return stack[0].value
 
 
 def solve_1(input_str, mapping):
