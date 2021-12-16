@@ -117,14 +117,9 @@ def solve_2(input_str, mapping):
 
 
 def evaluate_functions(stacklist):
-    print(stacklist)
-    a = list(stacklist)
     total = sum(i[-1] for i in stacklist)
 
     while len(stacklist) > 1:
-        assert sum(i[-1] for i in stacklist) == total
-        # if len(stacklist) < 60:
-        #     breakpoint()
 
         new_stack = []
         for idx, packet in enumerate(stacklist):
@@ -137,24 +132,18 @@ def evaluate_functions(stacklist):
                         if packet2[0] == "lit":
                             cum_len += packet2[2]
                             if cum_len == length:
-                                print(f"Length match: {cum_len} = {length}")
                                 input_packets = stacklist[idx + 1 : idx + idx2 + 2]
                                 args = ",".join(
                                     str(p[1]) for p in input_packets if p[0] == "lit"
                                 )
-                                assert sum(p[2] for p in input_packets) == cum_len
 
                                 compstr = f"func{packet[3]}({args})"
-                                print(f"Input: {input_packets}")
 
                                 new_val = evaluate(compstr)
                                 new_len = sum(p[-1] for p in input_packets) + packet[-1]
                                 newpacket = ("lit", new_val, new_len)
                                 new_stack.append(newpacket)
                                 new_stack.extend(stacklist[idx + idx2 + 2 :])
-                                assert len(new_stack) == len(stacklist) - len(
-                                    input_packets
-                                )
                                 applied = True
                                 break
                         else:
@@ -167,78 +156,50 @@ def evaluate_functions(stacklist):
                             lit_count += 1
                             if lit_count == num:
                                 input_packets = stacklist[idx + 1 : idx + idx2 + 2]
-                                assert len(input_packets) == num
-                                print(f"Num match: {num} = {len(input_packets)}")
-
                                 args = ",".join(
                                     str(p[1]) for p in input_packets if p[0] == "lit"
                                 )
                                 compstr = f"func{packet[3]}({args})"
-                                print(f"Input: {input_packets}")
                                 new_val = evaluate(compstr)
                                 new_len = sum(p[-1] for p in input_packets) + packet[-1]
                                 newpacket = ("lit", new_val, new_len)
                                 new_stack.append(newpacket)
                                 new_stack.extend(stacklist[idx + idx2 + 2 :])
-                                assert len(new_stack) == len(stacklist) - len(
-                                    input_packets
-                                )
-
                                 applied = True
                                 break
                         else:
                             break
             if applied:
-                print(f"Added {newpacket}")
                 stacklist = new_stack
                 break
             else:
                 new_stack.append(packet)
 
-    print(stacklist)
-    assert stacklist[0][-1] == total
     return stacklist[0][1]
 
 
 def evaluate(compstr):
     def func0(*args):
-        print(f"Summing {args} gives: {sum(args)}")
         return sum(args)
 
     def func1(*args):
-        print(f"Multiplying {args} gives: {reduce(lambda a, b: a * b, args)}")
         return reduce(lambda a, b: a * b, args)
 
     def func2(*args):
-        print(f"Min of {args}: {min(args)}")
-
         return min(args)
 
     def func3(*args):
-        print(f"Max of {args}: {max(args)}")
         return max(args)
 
     def func5(*args):
-        print(f"Is {args[0]} greater than {args[1]}?")
-        print(int(args[0] > args[1]))
-
-        assert len(args) == 2
         return int(args[0] > args[1])
 
     def func6(*args):
-        print(f"Is {args[0]} smaller than {args[1]}?")
-        print(int(args[0] < args[1]))
-        assert len(args) == 2
-
         return int(args[0] < args[1])
 
     def func7(*args):
-        print(f"Is {args[1]} equal to {args[0]}?")
-        print(int(args[1] == args[0]))
-        assert len(args) == 2
         return int(args[1] == args[0])
 
-    print(compstr)
     return eval(compstr)
 
 
@@ -262,6 +223,4 @@ if __name__ == "__main__":
     assert solve_2("F600BC2D8F", mapping) == 0
     assert solve_2("9C005AC2F8F0", mapping) == 0
     assert solve_2("9C0141080250320F1802104A08", mapping) == 1
-
-    print(solve_2(real_input, mapping))
-    # 2258651371210461 too high
+    assert solve_2(real_input, mapping) == 1922490999789
