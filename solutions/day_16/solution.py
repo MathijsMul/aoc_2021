@@ -1,7 +1,6 @@
 import os
-from collections import defaultdict, Counter
-import numpy as np
 from functools import reduce
+from dataclasses import dataclass
 
 
 def read_file(input_path: str):
@@ -9,7 +8,6 @@ def read_file(input_path: str):
         os.path.abspath(os.path.dirname(__file__)), "..", "..", input_path
     )
     return open(input_path).read()
-    # return [line.strip().split("-") for line in open(input_path).readlines()]
 
 
 def get_mapping(mapping_file):
@@ -30,152 +28,114 @@ def hex2bin(message, mapping):
     return bin
 
 
-def sum_versions(decoded):
-    if len(decoded) == 2:
-        return decoded[0]
-    elif len(decoded) > 2:
-        return decoded[0] + sum(sum_versions(packet) for packet in decoded[2:])
+@dataclass
+class Packet:
+    type: int
+    version: int
+    length: int
 
 
-def traverse(bin):
-    packet_conditions = []
-    subpacket_count = 0
-    len_count = 0
-    versions = []
-    segments = []
-    stack = []
+@dataclass
+class Operator(Packet):
+    size_type: int
+    size_param: int
 
-    while len(bin) > 0:
-        if int(bin, 2) == 0:
+
+@dataclass
+class Literal(Packet):
+    value: int
+    type: int
+
+
+def get_new_packet(sequence):
+    packet_type_id = int(sequence[3:6], 2)
+    if packet_type_id == 4:
+        return get_new_literal(sequence)
+    else:
+        return get_new_operator(sequence, packet_type_id)
+
+
+def get_new_operator(sequence, type):
+    length_type_id = int(sequence[6], 2)
+    if length_type_id == 0:
+        size_param = int(sequence[7:22], 2)
+        length = 22
+    elif length_type_id == 1:
+        size_param = int(sequence[7:18], 2)
+        length = 18
+    return Operator(
+        type=type,
+        version=int(sequence[0:3], 2),
+        size_type=length_type_id,
+        size_param=size_param,
+        length=length,
+    )
+
+
+def get_new_literal(sequence):
+    """type, version, value, length"""
+    version = int(sequence[0:3], 2)
+    bin_str = ""
+    idx = 6
+
+    while sequence[idx] in ["1", "0"]:
+        segment = sequence[idx : idx + 5]
+        bin_str += segment[1:]
+        idx += 5
+        if sequence[idx-5] == "0":
             break
-        if stack:
-            _, op_type, op_param, _, _ = next(
-                filter(lambda packet: packet[0] == "op", stack[::-1])
-            )
-            if (op_type == "len" and op_param == len_count) or (
-                op_type == "num" and op_param == subpacket_count
-            ):
-                subpacket_count, len_count = 0, 0
-                # stack.pop()
 
-        if not packet_conditions or packet_conditions[-1][0] == "op":
-        # elif not stack or stack[-1][0] == "op":
-            packet_version = int(bin[0:3], 2)
-            versions.append(packet_version)
-            packet_type_id = int(bin[3:6], 2)
-            if packet_type_id == 4:
-                # literal
-                packet_conditions.append("lit")
-                stack.append(("lit"))
-                bin = bin[6:]
-            else:
-                # operator
-                length_type_id = int(bin[6])
-                if length_type_id == 0:
-                    length = int(bin[7:22], 2)
-                    bin = bin[22:]
-                    stack.append(("op", "len", length, packet_type_id, 22))
-                elif length_type_id == 1:
-                    num_subpackets = int(bin[7:18], 2)
-                    bin = bin[18:]
-                    stack.append(("op", "num", num_subpackets, packet_type_id, 18))
-        else:
-            segment = bin[:5]
-            len_count += len(segment)
-            segments.append(segment) #[1:])
-            if segment[0] == "0":
-                # final five bits of literal
-                packet_conditions.pop()
-                stack.pop()
-                subpacket_count += 1
-                len_count += 6  # for literal headers
-                len_segment = sum(len(s) for s in segments)
-                binary_segment = "".join(s[1:] for s in segments)
-                segment_val = int(binary_segment, 2)
-
-                stack.append(("lit", segment_val, len_segment + 6))
-                segments = []
-            bin = bin[5:]
-
-        # breakpoint()
-
-    # part 1
-    # return sum(versions)
-    return evaluate_functions(stack), sum(versions)
+    value = int("".join(bin_str), 2)
+    return Literal(type=4, version=version, length=idx, value=value)
 
 
-def solve_1(input_str, mapping):
-    binary_str = hex2bin(input_str, mapping)
-    value, version_sum = traverse(binary_str)
-    return version_sum
+def parse(bin):
+    stack = []
+    while len(bin) > 0 and int(bin, 2) > 0:
+        new_packet = get_new_packet(bin)
+        stack.append(new_packet)
+        bin = bin[new_packet.length :]
+    return stack
 
 
-def solve_2(input_str, mapping):
-    binary_str = hex2bin(input_str, mapping)
-    value, version_sum = traverse(binary_str)
-    return value
+def apply_function(packet, input_packets):
+    args = ",".join(str(p.value) for p in input_packets if isinstance(p, Literal))
+    new_val = evaluate(f"func{packet.type}({args})")
+    new_len = sum(p.length for p in input_packets) + packet.length
+    return Literal(type=4, version=0, value=new_val, length=new_len)
 
 
 def evaluate_functions(stacklist):
-    total = sum(i[-1] for i in stacklist)
-
     while len(stacklist) > 1:
-
         new_stack = []
         for idx, packet in enumerate(stacklist):
             applied = False
-            if packet[0] == "op":
-                if packet[1] == "len":
-                    length = packet[2]
-                    cum_len = 0
-                    for idx2, packet2 in enumerate(stacklist[idx + 1 :]):
-                        if packet2[0] == "lit":
-                            cum_len += packet2[2]
-                            if cum_len == length:
-                                input_packets = stacklist[idx + 1 : idx + idx2 + 2]
-                                args = ",".join(
-                                    str(p[1]) for p in input_packets if p[0] == "lit"
-                                )
-
-                                compstr = f"func{packet[3]}({args})"
-
-                                new_val = evaluate(compstr)
-                                new_len = sum(p[-1] for p in input_packets) + packet[-1]
-                                newpacket = ("lit", new_val, new_len)
-                                new_stack.append(newpacket)
-                                new_stack.extend(stacklist[idx + idx2 + 2 :])
-                                applied = True
-                                break
-                        else:
+            if isinstance(packet, Operator):
+                cum_len, lit_count = 0, 0
+                for idx2, packet2 in enumerate(stacklist[idx + 1 :]):
+                    if isinstance(packet2, Literal):
+                        cum_len += packet2.length
+                        lit_count += 1
+                        if (
+                            packet.size_type == 0
+                            and cum_len == packet.size_param
+                            or packet.size_type == 1
+                            and lit_count == packet.size_param
+                        ):
+                            input_packets = stacklist[idx + 1 : idx + idx2 + 2]
+                            new = apply_function(packet, input_packets)
+                            new_stack.append(new)
+                            new_stack.extend(stacklist[idx + idx2 + 2 :])
+                            applied = True
                             break
-                elif packet[1] == "num":
-                    num = packet[2]
-                    lit_count = 0
-                    for idx2, packet2 in enumerate(stacklist[idx + 1 :]):
-                        if packet2[0] == "lit":
-                            lit_count += 1
-                            if lit_count == num:
-                                input_packets = stacklist[idx + 1 : idx + idx2 + 2]
-                                args = ",".join(
-                                    str(p[1]) for p in input_packets if p[0] == "lit"
-                                )
-                                compstr = f"func{packet[3]}({args})"
-                                new_val = evaluate(compstr)
-                                new_len = sum(p[-1] for p in input_packets) + packet[-1]
-                                newpacket = ("lit", new_val, new_len)
-                                new_stack.append(newpacket)
-                                new_stack.extend(stacklist[idx + idx2 + 2 :])
-                                applied = True
-                                break
-                        else:
-                            break
+                    else:
+                        break
             if applied:
                 stacklist = new_stack
                 break
-            else:
-                new_stack.append(packet)
+            new_stack.append(packet)
 
-    return stacklist[0][1]
+    return stacklist[0].value
 
 
 def evaluate(compstr):
@@ -203,6 +163,18 @@ def evaluate(compstr):
     return eval(compstr)
 
 
+def solve_1(input_str, mapping):
+    binary_str = hex2bin(input_str, mapping)
+    parsed = parse(binary_str)
+    return sum(packet.version for packet in parsed)
+
+
+def solve_2(input_str, mapping):
+    binary_str = hex2bin(input_str, mapping)
+    parsed = parse(binary_str)
+    return evaluate_functions(parsed)
+
+
 if __name__ == "__main__":
     real_input = read_file("data/day_16/input.txt")
     mapping = get_mapping("data/day_16/mapping.txt")
@@ -215,7 +187,7 @@ if __name__ == "__main__":
     assert solve_1(real_input, mapping) == 1014
 
     # Part 2
-    assert solve_2("C200B40A82", mapping) == 3
+    assert solve_2("C200B40A82", mapping) == 3, solve_2("C200B40A82", mapping)
     assert solve_2("04005AC33890", mapping) == 54
     assert solve_2("880086C3E88112", mapping) == 7
     assert solve_2("CE00C43D881120", mapping) == 9
