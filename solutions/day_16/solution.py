@@ -37,38 +37,6 @@ def sum_versions(decoded):
         return decoded[0] + sum(sum_versions(packet) for packet in decoded[2:])
 
 
-def get_first_packet(sequence):
-    packet_type_id = int(bin[3:6], 2)
-    if packet_type_id == 4:
-        return get_first_literal(sequence)
-    else:
-        return get_first_operator(sequence)
-
-
-def get_first_literal(sequence):
-    # type, version, value, length
-    type = 4
-    version = int(sequence[0:3], 2)
-
-    bin_literal = ""
-    segment = bin[:5]
-    # len_count += len(segment)
-    # segments.append(segment)
-    while segment[0] == "1":
-        # final five bits of literal
-        packet_conditions.pop()
-        stack.pop()
-        subpacket_count += 1
-        len_count += 6  # for literal headers
-        binary_segment = "".join(segments)
-        segment_val = int(binary_segment, 2)
-
-        stack.append(("lit", segment_val, len(binary_segment) + 6))
-        segments = []
-    bin = bin[5:]
-
-
-
 def traverse(bin):
     packet_conditions = []
     subpacket_count = 0
@@ -78,19 +46,6 @@ def traverse(bin):
     stack = []
 
     while len(bin) > 0:
-        first_packet = get_first_packet(bin)
-
-        packet_version = int(bin[0:3], 2)
-        # versions.append(packet_version)
-        packet_type_id = int(bin[3:6], 2)
-        if packet_type_id == 4:
-            # literal
-            packet_conditions.append("lit")
-            stack.append(("lit"))
-            bin = bin[6:]
-
-
-
         if int(bin, 2) == 0:
             break
         if stack:
