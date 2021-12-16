@@ -82,17 +82,18 @@ def traverse(bin):
         else:
             segment = bin[:5]
             len_count += len(segment)
-            segments.append(segment)
+            segments.append(segment) #[1:])
             if segment[0] == "0":
                 # final five bits of literal
                 packet_conditions.pop()
                 stack.pop()
                 subpacket_count += 1
                 len_count += 6  # for literal headers
-                binary_segment = "".join(segments)
+                len_segment = sum(len(s) for s in segments)
+                binary_segment = "".join(s[1:] for s in segments)
                 segment_val = int(binary_segment, 2)
 
-                stack.append(("lit", segment_val, len(binary_segment) + 6))
+                stack.append(("lit", segment_val, len_segment + 6))
                 segments = []
             bin = bin[5:]
 
