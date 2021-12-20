@@ -29,13 +29,13 @@ def get_surrounding_indices(x, y):
     return list(product(range(x - 1, x + 2), range(y - 1, y + 2)))
 
 
-def get_value_string(array, locs):
+def get_value_string(array, locs, pad_value):
     output_str = ""
     for loc in locs:
         try:
             value = array[loc]
         except IndexError:
-            value = "x"
+            value = str(pad_value)
 
         if isinstance(value, float):
             value = int(value)
@@ -48,7 +48,7 @@ def str_to_int(value_str):
     return int(value_str, 2)
 
 
-def solve_1(algo, input_image, n_iter=2):
+def solve(algo, input_image, n_iter=2):
     pad_value = 0
 
     for i in range(n_iter):
@@ -63,8 +63,7 @@ def solve_1(algo, input_image, n_iter=2):
         for x in range(input_image.shape[0]):
             for y in range(input_image.shape[1]):
                 ids = get_surrounding_indices(x, y)
-                value_str = get_value_string(input_image, ids)
-                value_str = value_str.replace("x", str(pad_value))
+                value_str = get_value_string(input_image, ids, pad_value)
                 value = str_to_int(value_str)
                 new_value = algo[value]
                 if new_value == "#":
@@ -77,21 +76,17 @@ def solve_1(algo, input_image, n_iter=2):
     return int(np.sum(out))
 
 
-def solve_2(input_list):
-    return
-
-
 if __name__ == "__main__":
     sample1_input = read_file("data/day_20/sample1.txt")
     real_input = read_file("data/day_20/input.txt")
 
     # Part 1
     algo1, image1 = sample1_input
-    assert solve_1(algo1, image1) == 35
+    assert solve(algo1, image1) == 35
 
     algo, image = real_input
-    assert solve_1(algo, image) == 5301
+    assert solve(algo, image) == 5301
 
     # Part 2
-    assert solve_1(algo1, image1, 50) == 3351
-    assert solve_1(algo, image, 50) == 19492
+    assert solve(algo1, image1, 50) == 3351
+    assert solve(algo, image, 50) == 19492

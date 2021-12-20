@@ -1,6 +1,4 @@
 import os
-from collections import defaultdict, Counter
-import numpy as np
 
 
 def read_file(input_path: str):
@@ -20,14 +18,11 @@ def solve_2(input_list):
 
 def explode(sf_str):
     # Apply single explode action
-    # sf_list = list(sf_str)
     sf_list = sf_str_to_list(sf_str)
 
     nesting = 0
-    last_reg_idx = None
-    last_reg_value = None
-    next_reg_idx = None
-    next_reg_value = None
+    last_reg_idx, last_reg_value = None, None
+    next_reg_idx, next_reg_value = None, None
 
     for idx, char in enumerate(sf_list):
         if char == "[":
@@ -50,7 +45,7 @@ def explode(sf_str):
                     last_reg_value += left
 
                 # Find next reg
-                for idx2, char2 in enumerate(sf_list[idx+4:]):
+                for idx2, char2 in enumerate(sf_list[idx + 4 :]):
                     try:
                         next_reg_value = int(char2)
                         next_reg_idx = idx2 + idx
@@ -61,7 +56,7 @@ def explode(sf_str):
                 if next_reg_value is not None:
                     next_reg_value += right
 
-                result = sf_list[:idx] + ["0"] + sf_list[idx+5:]
+                result = sf_list[:idx] + ["0"] + sf_list[idx + 5 :]
 
                 if last_reg_idx:
                     result[last_reg_idx] = last_reg_value
@@ -112,46 +107,20 @@ def split(sf_str):
 def reduce(sf_str):
     change = True
 
-    # print("Input:")
-    # print(sf_str)
-
     while change:
         sf_start = sf_str
 
-        # do_explode = True
-        # while do_explode:
-        #     sf_str_expl = explode(sf_str)
-        #     do_explode = sf_str != sf_str_expl
-        #     sf_str = sf_str_expl
-        #
-        # do_split = True
-        # while do_split:
-        #     sf_str_spl = split(sf_str)
-        #     do_split = sf_str != sf_str_spl
-        #     sf_str = sf_str_spl
-
-        # print("After explode:")
         sf_str = explode(sf_str)
         if sf_start != sf_str:
             continue
 
         sf_str = split(sf_str)
-        # print(sf_str2)
-        # sf_str2 = split(sf_str2)
-        # print("After split:")
-        # print(sf_str2)
-
-        # len_change = len_0 != len(sf_str)
         change = sf_start != sf_str
-        # sf_str = sf_str2
 
     return sf_str
 
 
 def add_single(sf_str1, sf_str2):
-
-    # sf_list = [sf_str_to_list(sf_str1), sf_str_to_list(sf_str2)]
-    # sf_str = "".join(sf_list).replace(" ", "")
     sf_str = f"[{sf_str1},{sf_str2}]"
     return reduce(sf_str)
 
@@ -181,7 +150,6 @@ def get_max_magnitude(sfnrs):
                 sum = add_single(sfnr, sfnr2)
                 sums.append(compute_magnitude(sum))
     return max(sums)
-
 
 
 if __name__ == "__main__":
@@ -220,19 +188,24 @@ if __name__ == "__main__":
     # larger example
     add_sample1 = "[[[0,[4,5]],[0,0]],[[[4,5],[2,6]],[9,5]]]"
     add_sample2 = "[7,[[[3,7],[4,3]],[[6,3],[8,8]]]]"
-    assert add_single(add_sample1, add_sample2) == "[[[[4,0],[5,4]],[[7,7],[6,0]]],[[8,[7,7]],[[7,9],[5,0]]]]"
+    assert (
+        add_single(add_sample1, add_sample2)
+        == "[[[[4,0],[5,4]],[[7,7],[6,0]]],[[8,[7,7]],[[7,9],[5,0]]]]"
+    )
 
     add_sample1 = "[[[[4,0],[5,4]],[[7,7],[6,0]]],[[8,[7,7]],[[7,9],[5,0]]]]"
     add_sample2 = "[[2,[[0,8],[3,4]]],[[[6,7],1],[7,[1,6]]]]"
-    assert add_single(add_sample1, add_sample2) == "[[[[6,7],[6,7]],[[7,7],[0,7]]],[[[8,7],[7,7]],[[8,8],[8,0]]]]"
+    assert (
+        add_single(add_sample1, add_sample2)
+        == "[[[[6,7],[6,7]],[[7,7],[0,7]]],[[[8,7],[7,7]],[[8,8],[8,0]]]]"
+    )
 
     add_sample1 = "[[[[6,7],[6,7]],[[7,7],[0,7]]],[[[8,7],[7,7]],[[8,8],[8,0]]]]"
     add_sample2 = "[[[[2,4],7],[6,[0,5]]],[[[6,8],[2,8]],[[2,1],[4,5]]]]"
-    assert add_single(add_sample1, add_sample2) == "[[[[7,0],[7,7]],[[7,7],[7,8]]],[[[7,7],[8,8]],[[7,7],[8,7]]]]"
-
-    # add_sample1 = ""
-    # add_sample2 = ""
-    # assert add_single(add_sample1, add_sample2) == ""
+    assert (
+        add_single(add_sample1, add_sample2)
+        == "[[[[7,0],[7,7]],[[7,7],[7,8]]],[[[7,7],[8,8]],[[7,7],[8,7]]]]"
+    )
 
     full_sample_1 = read_file("data/day_18/sample1.txt")
     assert add(full_sample_1) == "[[[[5,0],[7,4]],[5,5]],[6,6]]"
@@ -245,7 +218,10 @@ if __name__ == "__main__":
     assert compute_magnitude("[[[[1,1],[2,2]],[3,3]],[4,4]]") == 445
     assert compute_magnitude("[[[[3,0],[5,3]],[4,4]],[5,5]]") == 791
     assert compute_magnitude("[[[[5,0],[7,4]],[5,5]],[6,6]]") == 1137
-    assert compute_magnitude("[[[[8,7],[7,7]],[[8,6],[7,7]]],[[[0,7],[6,6]],[8,7]]]") == 3488
+    assert (
+        compute_magnitude("[[[[8,7],[7,7]],[[8,6],[7,7]]],[[[0,7],[6,6]],[8,7]]]")
+        == 3488
+    )
 
     full_sample_3 = read_file("data/day_18/sample3.txt")
     assert compute_magnitude(add(full_sample_3)) == 4140
