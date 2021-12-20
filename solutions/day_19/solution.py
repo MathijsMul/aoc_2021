@@ -262,7 +262,7 @@ if __name__ == "__main__":
     real_input = read_file("data/day_19/input.txt")
 
     assert solve_1(sample2_input) == (79, 3621)
-    assert solve_1(real_input)[0] == (396, 11828)
+    assert solve_1(real_input) == (396, 11828)
 
     # Part 1
     # assert solve_1(sample1_input) == ..., solve_1(sample1_input)
