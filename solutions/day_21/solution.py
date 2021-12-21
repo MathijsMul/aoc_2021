@@ -62,70 +62,43 @@ def get_turn_counts(init_pos_player):
 
 
 def solve_2(init_pos):
-    init_state = ((0,0),(init_pos[0], init_pos[1]),1)
-    queue = [init_state]
+    init_state = ((0,0),(init_pos[0], init_pos[1]))
+    counter = Counter([init_state])
 
     turn = 0
     move_counts = {3: 1, 4: 3, 5: 6, 6: 7, 7: 6, 8: 3, 9: 1}
     wins1, wins2 = 0, 0
 
-    while len(queue) > 0:
-        # Play one turn
-        print(f"Turn {turn}; queue size: {len(queue)}")
-
+    while sum(counter.values()) > 0:
         player = turn % 2
-        new_queue = []
-        for state in queue:
-            state_count = state[2]
+        new_counter = Counter()
+        for state, state_count in counter.items():
             for move, count in move_counts.items():
                 if player == 0:
                     new_pos = (state[1][0] + move - 1) % 10 + 1
                     new_score = state[0][0] + new_pos
-                    new_state = ((new_score, state[0][1]), (new_pos, state[1][1]), state_count * count)
+                    new_state = ((new_score, state[0][1]), (new_pos, state[1][1]))
+
                 elif player == 1:
                     new_pos = (state[1][1] + move - 1) % 10 + 1
                     new_score = state[0][1] + new_pos
-                    new_state = ((state[0][0], new_score), (state[1][0], new_pos), state_count * count)
+                    new_state = ((state[0][0], new_score), (state[1][0], new_pos))
 
-                new_queue.append(new_state)
+                new_counter[new_state] += state_count * count
 
         # Check for winners
-        queue = []
-        for state in new_queue:
+        counter = Counter()
+        for state, state_count in new_counter.items():
             score1, score2 = state[0]
-            state_count = state[2]
             if score1 >= 21:
                 wins1 += state_count
             elif score2 >= 21:
                 wins2 += state_count
             else:
-                queue.append(state)
+                counter[state] += state_count
         turn += 1
 
-    return wins1, wins2
-
-# def solve_2(init_pos):
-#     roll_options = list(product([1, 2, 3], repeat=3))
-#     move_options = Counter([sum(r) for r in roll_options])
-#
-#     counts_player_1 = get_turn_counts(init_pos_player=init_pos[0])
-#     counts_player_2 = get_turn_counts(init_pos_player=init_pos[1])
-#
-#     wins_1, wins_2 = 0, 0
-#     for num_turns_1, count_1 in counts_player_1.items():
-#         for num_turns_2, count_2 in counts_player_2.items():
-#             if num_turns_1 < num_turns_2:
-#                 wins_1 += count_1 * count_2
-#             elif num_turns_2 < num_turns_1:
-#                 wins_2 += count_1 * count_2
-#             elif num_turns_1 == num_turns_2:
-#                 wins_1 += count_1 * count_2
-#
-#     return wins_1, wins_2
-#     # Player 0
-#
-#     # return turn_counts
-#     # return pos_score_turn_counter
+    return max([wins1, wins2])
 
 
 if __name__ == "__main__":
@@ -137,10 +110,5 @@ if __name__ == "__main__":
     # assert solve_1(real_pos) == 916083
 
     # Part 2
-    c = solve_2(sample_pos)
-    print(c)
-
-    # player 1
-    # 444356092776315
-    # player 2
-    # 341960390180808
+    assert solve_2(sample_pos) == 444356092776315
+    assert solve_2(real_pos) == 49982165861983
