@@ -1,5 +1,6 @@
 import os
 from collections import Counter
+from itertools import product
 
 
 def read_file(input_path: str):
@@ -12,13 +13,9 @@ def read_file(input_path: str):
 def solve_1(init_pos):
     scores = [0, 0]
     locations = [init_pos[0], init_pos[1]]
-    turn = 0
-    rolls = 0
-    die_side = 0
+    player, rolls, die_side = 0, 0, 0
 
     while all(score < 1000 for score in scores):
-        player = turn % 2
-
         total_turn = -1
         for die_roll in range(3):
             die_score = (die_side % 100) + 1
@@ -27,77 +24,59 @@ def solve_1(init_pos):
             rolls += 1
 
         locations[player] = (locations[player] + total_turn) % 10 + 1
-
         scores[player] += locations[player]
-        turn += 1
+        player = 1 - player
 
     return min(scores) * rolls
 
 
-def get_turn_counts(init_pos_player):
-    pos_score_turn_counter = Counter([(init_pos_player, 0, 0)])
+def get_new_state(old_state, player, move):
+    scores, positions = old_state
 
-    while any(score < 21 for _, score, _ in pos_score_turn_counter):
-        new_counter = Counter()
-        for (pos, score, turn), count in pos_score_turn_counter.items():
-            if score >= 21:
-                new_counter[(pos, score, turn)] += count
-            else:
-                move_counts = {3: 1, 4: 3, 5: 6, 6: 7, 7: 6, 8: 3, 9: 1}
-                for move, freq in move_counts.items():
-                    new_pos = (pos + move - 1) % 10 + 1
-                    new_counter[(new_pos, score + new_pos, turn + 1)] += freq
-        pos_score_turn_counter = new_counter
+    new_positions = list(positions)
+    new_positions[player] = (positions[player] + move - 1) % 10 + 1
 
-    turn_counts = Counter()
-    for (pos, score, turn), count in pos_score_turn_counter.items():
-        turn_counts[turn] += count
-    return turn_counts
+    new_scores = list(scores)
+    new_scores[player] += new_positions[player]
+
+    return (tuple(new_scores), tuple(new_positions))
 
 
 def solve_2(init_pos):
-    init_state = ((0,0),(init_pos[0], init_pos[1]))
-    counter = Counter([init_state])
+    # State has structure ((score_1, score_2), (pos_1, pos_2))
+    init_state = ((0, 0), init_pos)
+    state_counter = Counter([init_state])
 
-    turn = 0
-    move_counts = {3: 1, 4: 3, 5: 6, 6: 7, 7: 6, 8: 3, 9: 1}
-    wins1, wins2 = 0, 0
+    move_counter = Counter([sum(prod) for prod in product([1, 2, 3], repeat=3)])
+    player = 0
+    wins = [0,0]
 
-    while sum(counter.values()) > 0:
-        player = turn % 2
-        new_counter = Counter()
-        for state, state_count in counter.items():
-            for move, count in move_counts.items():
-                if player == 0:
-                    new_pos = (state[1][0] + move - 1) % 10 + 1
-                    new_score = state[0][0] + new_pos
-                    new_state = ((new_score, state[0][1]), (new_pos, state[1][1]))
-
-                elif player == 1:
-                    new_pos = (state[1][1] + move - 1) % 10 + 1
-                    new_score = state[0][1] + new_pos
-                    new_state = ((state[0][0], new_score), (state[1][0], new_pos))
-
-                new_counter[new_state] += state_count * count
+    while sum(state_counter.values()) > 0:
+        new_state_counter = Counter()
+        for state, state_count in state_counter.items():
+            for move, count in move_counter.items():
+                new_state = get_new_state(state, player, move)
+                new_state_counter[new_state] += state_count * count
 
         # Check for winners
-        counter = Counter()
-        for state, state_count in new_counter.items():
-            score1, score2 = state[0]
-            if score1 >= 21:
-                wins1 += state_count
-            elif score2 >= 21:
-                wins2 += state_count
+        state_counter = Counter()
+        for state, state_count in new_state_counter.items():
+            scores = state[0]
+            if scores[0] >= 21:
+                wins[0] += state_count
+            elif scores[1] >= 21:
+                wins[1] += state_count
             else:
-                counter[state] += state_count
-        turn += 1
+                state_counter[state] += state_count
 
-    return max([wins1, wins2])
+        player = 1 - player
+
+    return max(wins)
 
 
 if __name__ == "__main__":
-    sample_pos = [4, 8]
-    real_pos = [10, 2]
+    sample_pos = (4, 8)
+    real_pos = (10, 2)
 
     # Part 1
     assert solve_1(sample_pos) == 739785
