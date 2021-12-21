@@ -1,7 +1,5 @@
 import os
-from collections import defaultdict, Counter
-import numpy as np
-from itertools import product
+from collections import Counter
 
 
 def read_file(input_path: str):
@@ -13,28 +11,24 @@ def read_file(input_path: str):
 
 def solve_1(init_pos):
     scores = [0, 0]
-    locations = init_pos
+    locations = [init_pos[0], init_pos[1]]
     turn = 0
     rolls = 0
     die_side = 0
 
     while all(score < 1000 for score in scores):
         player = turn % 2
-        print(f"Player {player} rolls ")
 
         total_turn = -1
         for die_roll in range(3):
             die_score = (die_side % 100) + 1
             die_side += 1
-            print(f"Die rolls {die_score}")
             total_turn += die_score
             rolls += 1
 
         locations[player] = (locations[player] + total_turn) % 10 + 1
 
-        print(f"Moves to {locations[player]}")
         scores[player] += locations[player]
-        print(f"Total score: {scores[player]}")
         turn += 1
 
     return min(scores) * rolls
@@ -106,8 +100,8 @@ if __name__ == "__main__":
     real_pos = [10, 2]
 
     # Part 1
-    # assert solve_1(sample_pos) == 739785
-    # assert solve_1(real_pos) == 916083
+    assert solve_1(sample_pos) == 739785
+    assert solve_1(real_pos) == 916083
 
     # Part 2
     assert solve_2(sample_pos) == 444356092776315
