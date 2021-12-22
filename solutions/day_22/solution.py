@@ -1,7 +1,8 @@
 import os
 from itertools import product
-
+from dataclasses import dataclass
 import numpy as np
+from typing import Tuple
 
 
 def read_file(input_path: str):
@@ -35,6 +36,17 @@ def solve_1(steps):
         ] = sign
 
     return np.sum(states)
+
+
+class Cuboid:
+    def __init__(self, boundaries: Tuple[Tuple[int]]):
+        self.boundaries = boundaries
+        self.x_min, self.x_max = self.boundaries[0]
+        self.y_min, self.y_max = self.boundaries[1]
+        self.z_min, self.z_max = self.boundaries[2]
+
+    def size(self):
+        return (self.x_max - self.x_min) * (self.y_max - self.y_min) * (self.z_max - self.z_min)
 
 
 def overlap(cuboid1, cuboid2):
@@ -116,10 +128,9 @@ def solve_2(steps):
         cuboids = new_cuboids
 
     num_on = 0
-    for c in cuboids:
-        (xmin, xmax), (ymin, ymax), (zmin, zmax) = c
-        size = ((xmax - xmin)) * ((ymax - ymin)) * ((zmax - zmin))
-        num_on += size
+    for t in cuboids:
+        cuboid = Cuboid(t)
+        num_on += cuboid.size()
 
     return num_on
 
