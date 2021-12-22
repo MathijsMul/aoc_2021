@@ -1,8 +1,8 @@
 import os
 from itertools import product
-from dataclasses import dataclass
-import numpy as np
 from typing import Tuple
+
+import numpy as np
 
 
 def read_file(input_path: str):
@@ -46,51 +46,49 @@ class Cuboid:
         self.z_min, self.z_max = self.boundaries[2]
 
     def size(self):
-        return (self.x_max - self.x_min) * (self.y_max - self.y_min) * (self.z_max - self.z_min)
+        return (
+            (self.x_max - self.x_min)
+            * (self.y_max - self.y_min)
+            * (self.z_max - self.z_min)
+        )
+
+    def overlap(self, other: "Cuboid"):
+        return (
+            (self.x_min <= other.x_max - 1 and self.x_max - 1 >= other.x_min)
+            and (self.y_min <= other.y_max - 1 and self.y_max - 1 >= other.y_min)
+            and (self.z_min <= other.z_max - 1 and self.z_max - 1 >= other.z_min)
+        )
 
 
-def overlap(cuboid1, cuboid2):
-    ((xmin1, xmax1), (ymin1, ymax1), (zmin1, zmax1)) = cuboid1
-    ((xmin2, xmax2), (ymin2, ymax2), (zmin2, zmax2)) = cuboid2
+def get_non_overlapping(cuboid1: Cuboid, cuboid2: Cuboid):
+    """Subtract cuboid2 from cuboid1"""
 
-    return (
-        (xmin1 <= xmax2 - 1 and xmax1 - 1 >= xmin2)
-        and (ymin1 <= ymax2 - 1 and ymax1 - 1 >= ymin2)
-        and (zmin1 <= zmax2 - 1 and zmax1 - 1 >= zmin2)
-    )
-
-
-def get_non_overlapping(cuboid1, cuboid2):
-    # Compute cuboid1 - cuboid2
-    ((xmin1, xmax1), (ymin1, ymax1), (zmin1, zmax1)) = cuboid1
-    ((xmin2, xmax2), (ymin2, ymax2), (zmin2, zmax2)) = cuboid2
-
-    if xmin2 >= xmin1 and xmax2 <= xmax1:
-        xpoints = [xmin1, xmin2, xmax2, xmax1]
-    elif xmin2 >= xmin1:
-        xpoints = [xmin1, xmin2, xmax1]
-    elif xmax2 <= xmax1:
-        xpoints = [xmin1, xmax2, xmax1]
+    if cuboid2.x_min >= cuboid1.x_min and cuboid2.x_max <= cuboid1.x_max:
+        xpoints = [cuboid1.x_min, cuboid2.x_min, cuboid2.x_max, cuboid1.x_max]
+    elif cuboid2.x_min >= cuboid1.x_min:
+        xpoints = [cuboid1.x_min, cuboid2.x_min, cuboid1.x_max]
+    elif cuboid2.x_max <= cuboid1.x_max:
+        xpoints = [cuboid1.x_min, cuboid2.x_max, cuboid1.x_max]
     else:
-        xpoints = [xmin1, xmax1]
+        xpoints = [cuboid1.x_min, cuboid1.x_max]
 
-    if ymin2 >= ymin1 and ymax2 <= ymax1:
-        ypoints = [ymin1, ymin2, ymax2, ymax1]
-    elif ymin2 >= ymin1:
-        ypoints = [ymin1, ymin2, ymax1]
-    elif ymax2 <= ymax1:
-        ypoints = [ymin1, ymax2, ymax1]
+    if cuboid2.y_min >= cuboid1.y_min and cuboid2.y_max <= cuboid1.y_max:
+        ypoints = [cuboid1.y_min, cuboid2.y_min, cuboid2.y_max, cuboid1.y_max]
+    elif cuboid2.y_min >= cuboid1.y_min:
+        ypoints = [cuboid1.y_min, cuboid2.y_min, cuboid1.y_max]
+    elif cuboid2.y_max <= cuboid1.y_max:
+        ypoints = [cuboid1.y_min, cuboid2.y_max, cuboid1.y_max]
     else:
-        ypoints = [ymin1, ymax1]
+        ypoints = [cuboid1.y_min, cuboid1.y_max]
 
-    if zmin2 >= zmin1 and zmax2 <= zmax1:
-        zpoints = [zmin1, zmin2, zmax2, zmax1]
-    elif zmin2 >= zmin1:
-        zpoints = [zmin1, zmin2, zmax1]
-    elif zmax2 <= zmax1:
-        zpoints = [zmin1, zmax2, zmax1]
+    if cuboid2.z_min >= cuboid1.z_min and cuboid2.z_max <= cuboid1.z_max:
+        zpoints = [cuboid1.z_min, cuboid2.z_min, cuboid2.z_max, cuboid1.z_max]
+    elif cuboid2.z_min >= cuboid1.z_min:
+        zpoints = [cuboid1.z_min, cuboid2.z_min, cuboid1.z_max]
+    elif cuboid2.z_max <= cuboid1.z_max:
+        zpoints = [cuboid1.z_min, cuboid2.z_max, cuboid1.z_max]
     else:
-        zpoints = [zmin1, zmax1]
+        zpoints = [cuboid1.z_min, cuboid1.z_max]
 
     xranges = [tuple(xpoints[idx : idx + 2]) for idx in range(len(xpoints) - 1)]
     yranges = [tuple(ypoints[idx : idx + 2]) for idx in range(len(ypoints) - 1)]
@@ -101,23 +99,24 @@ def get_non_overlapping(cuboid1, cuboid2):
     # Take out overlapping ones
     non_overlapping_subcuboids = []
     for c in subcuboids:
-        if not overlap(c, cuboid2):
-            non_overlapping_subcuboids.append(c)
+        subcuboid = Cuboid(c)
+        if not cuboid2.overlap(subcuboid):
+            non_overlapping_subcuboids.append(subcuboid)
 
     return non_overlapping_subcuboids
 
 
 def solve_2(steps):
-    # Represent cuboids as ((xmin, xmax),(ymin, ymax),(zmin,zmax))
     cuboids = []
 
     for idx, step in enumerate(steps):
         new_cuboids = []
-        sign, new_cub = step
+        sign, boundaries = step
+        new_cub = Cuboid(boundaries)
 
         for old_cub in cuboids:
             # Detect and remove overlapping area
-            if overlap(old_cub, new_cub):
+            if old_cub.overlap(new_cub):
                 # Only keep non-overlapping areas of old cuboid
                 non_overlapping_subcubs = get_non_overlapping(old_cub, new_cub)
                 new_cuboids.extend(non_overlapping_subcubs)
@@ -128,8 +127,7 @@ def solve_2(steps):
         cuboids = new_cuboids
 
     num_on = 0
-    for t in cuboids:
-        cuboid = Cuboid(t)
+    for cuboid in cuboids:
         num_on += cuboid.size()
 
     return num_on
