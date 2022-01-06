@@ -2,6 +2,7 @@ import os
 from collections import defaultdict, Counter
 import numpy as np
 from typing import Iterable
+from random import choice
 
 
 def read_file(input_path: str):
@@ -219,18 +220,20 @@ if __name__ == "__main__":
     # for i in range(15):
     #     assert int("".join(map(str, apply_alu((i,), sample_prog3).values())), 2) == i
 
-    o = solve_1(program)
-    print(o)
+    # o = solve_1(program)
+    # print(o)
 
     # z_in = None
     # w_out = None
 
+    # z_in = 0
     # for w_out in range(1,9)[::-1]:
-    # for w_out in [9]:
-    #     for z_in in [14]:
+    # # for w_out in [9]:
+    #     for z_in in range(14):
     #         x_out = int(((z_in % 26) - 5) != w_out)
     #         z_out = ((w_out + 14) * x_out) + ((z_in // 26) * (1 + 25 * x_out))
     #         print(z_out)
+    #         z_in = z_out
 
 
     # sample_nr = 13579246899999
@@ -247,10 +250,22 @@ if __name__ == "__main__":
     # print(out)
 
     # for i in range(10 ** 14)[::-1]:
-    #     if i % (10 ** 4) == 0:
-    #         print(f"Tried {i} nrs")
-    #
-    #     check = monad_check(i, program)
-    #     if check == 0:
-    #         print(i)
-    #         break
+    minx = 9999999999999999999
+    for j in range(100000):
+        # if i % (10 ** 4) == 0:
+        #     print(f"Tried {i} nrs")
+        i = ""
+        for _ in range(14):
+            i += str(choice(range(1, 10)))
+
+        # print(i)
+        check = monad_check1(i, program)
+        # print(check)
+        if check < minx:
+            minx = check
+        if check == 0:
+            print(i)
+            break
+        # print("\n")
+
+print(minx)
