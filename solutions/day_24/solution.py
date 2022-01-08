@@ -23,31 +23,19 @@ def read_file(input_path: str):
 class Variable:
     def __init__(self):
         self.counter = Counter()
-        self.assumptions = []
-
-    def __repr__(self):
-        return str(self.counter)
+        self.equations = []
 
     @property
     def max_sum(self):
-        max_sum = 0
-        for key in self.counter:
-            if key == "ones":
-                max_sum += self.counter[key]
-            else:
-                max_sum += 9 * self.counter[key]
-        return max_sum
+        return 9 * self.min_sum - 8 * self.counter["ones"]
 
     @property
     def min_sum(self):
-        min_sum = 0
-        for key in self.counter:
-            min_sum += self.counter[key]
-        return min_sum
+        return sum(self.counter.values())
 
     def inp(self, other):
         self.counter.clear()
-        self.counter[other] += 1
+        self.counter = other.counter
 
     def add(self, other):
         if isinstance(other, int):
@@ -79,8 +67,6 @@ class Variable:
                     if key_idx > 0:
                         if self.counter[key] % other == 0:
                             self.counter[key] //= other
-                        else:
-                            raise NotImplementedError
                     elif key_idx == 0:
                         max_remainder = (
                             self.counter["ones"] % other + 9 * self.counter[key]
@@ -88,10 +74,6 @@ class Variable:
                         if max_remainder < other:
                             self.counter["ones"] //= other
                             self.counter[key] = 0
-                        else:
-                            raise NotImplementedError
-        else:
-            raise NotImplementedError
 
     def mod(self, other):
         if isinstance(other, int):
@@ -100,11 +82,6 @@ class Variable:
                     self.counter[key] %= other
                 elif self.counter[key] % other == 0:
                     self.counter[key] = 0
-
-        if isinstance(other, int) and other > self.max_sum:
-            pass
-        else:
-            raise NotImplementedError
 
     def eql(self, other):
         if isinstance(other, int):
@@ -115,8 +92,6 @@ class Variable:
             elif sum(self.counter) == 0 and other == 0:
                 self.counter.clear()
                 self.counter["ones"] = 1
-            else:
-                raise NotImplementedError(f"Trying to eql {self.counter} and {other}")
         if isinstance(other, Variable):
             if self.counter == other.counter:
                 self.counter.clear()
@@ -128,16 +103,9 @@ class Variable:
                 else:
                     # Two options. Assume we always want the case where values are equal, in order
                     # to minimize z.
-                    self.add_assumption(other)
+                    self.equations.append([Counter(self.counter), Counter(other.counter)])
                     self.counter.clear()
                     self.counter["ones"] = 1
-
-    @property
-    def non_zero_counts(self):
-        return {k: v for k, v in Counter(self.counter).items() if v != 0}
-
-    def add_assumption(self, other):
-        self.assumptions.append([self.non_zero_counts, other.non_zero_counts])
 
 
 def get_equations(commands):
@@ -147,7 +115,8 @@ def get_equations(commands):
     for command_idx, command in enumerate(commands):
         instr, var_1 = command[0], command[1]
         if instr == "inp":
-            var_2 = digit_idx
+            var_2 = Variable()
+            var_2.counter = Counter({digit_idx: 1})
             digit_idx += 1
         else:
             var_2 = command[2]
@@ -155,12 +124,12 @@ def get_equations(commands):
                 var_2 = values[var_2]
         getattr(values[var_1], instr)(var_2)
 
-    return values["x"].assumptions
+    return values["x"].equations
 
 
 def get_var(equation_side):
-    vars = [k for k in equation_side.keys() if k != "ones"]
-    assert len(vars) == 1
+    vars = [key for key, count in equation_side.items() if key != "ones" and count != 0]
+    assert len(vars) == 1, vars
     return vars[0]
 
 
