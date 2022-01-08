@@ -1,9 +1,5 @@
 import os
-from collections import defaultdict, Counter
-import numpy as np
-from itertools import product
-
-from copy import deepcopy
+from collections import Counter
 
 
 def read_file(input_path: str):
@@ -26,6 +22,7 @@ def read_file(input_path: str):
 class Variable:
     def __init__(self):
         self.counter = Counter()
+        self.assumptions = []
 
     def __repr__(self):
         return str(self.counter)
@@ -73,7 +70,12 @@ class Variable:
             if other == 1:
                 pass
             else:
-                for key_idx, key in enumerate(sorted(self.counter.keys(), key=lambda x: int(x.split("_")[1]) if "_" in x else -1)[::-1]):
+                for key_idx, key in enumerate(
+                    sorted(
+                        self.counter.keys(),
+                        key=lambda x: int(x.split("_")[1]) if "_" in x else -1,
+                    )[::-1]
+                ):
                     if key == "ones":
                         continue
                     elif key_idx > 0:
@@ -82,7 +84,9 @@ class Variable:
                         else:
                             raise NotImplementedError
                     elif key_idx == 0:
-                        max_remainder = self.counter["ones"] % other + 9 * self.counter[key]
+                        max_remainder = (
+                            self.counter["ones"] % other + 9 * self.counter[key]
+                        )
                         if max_remainder < other:
                             self.counter["ones"] //= other
                             self.counter[key] = 0
@@ -124,85 +128,115 @@ class Variable:
                     self.counter.clear()
                     self.counter["ones"] = 0
                 else:
-                    # Two options
-                    raise ArithmeticError
-                    # self.counter.clear()
+                    # Two options. Assume we always want the case where values are equal.
+                    c1 = {k: v for k, v in Counter(self.counter).items() if v != 0}
+                    c2 = {k: v for k, v in Counter(other.counter).items() if v != 0}
+
+                    self.assumptions.append([c1, c2])
+                    self.counter.clear()
+                    self.counter["ones"] = 1
 
 
-
-
-def solve_1(commands):
-    init_values = {"w": Variable(), "x": Variable(), "y": Variable(), "z": Variable()}
-    worlds = [init_values]
+def get_equations(commands):
+    values = {"w": Variable(), "x": Variable(), "y": Variable(), "z": Variable()}
 
     digit_idx = 0
     for command_idx, command in enumerate(commands):
-        print(command)
         instr, var_1 = command[0], command[1]
-        new_worlds = []
         if instr == "inp":
-            for values in worlds:
-                values[var_1].inp("d_" + str(digit_idx))
+            values[var_1].inp("d_" + str(digit_idx))
             digit_idx += 1
         else:
             var_2 = command[2]
 
-            for values in worlds:
-                print(values)
-                if isinstance(var_2, str):
-                    var_2 = values[var_2]
+            if isinstance(var_2, str):
+                var_2 = values[var_2]
 
-                if instr == "add":
-                    values[var_1].add(var_2)
-                elif instr == "mul":
-                    values[var_1].mul(var_2)
-                elif instr == "div":
-                    values[var_1].div(var_2)
-                elif instr == "mod":
-                    values[var_1].mod(var_2)
-                elif instr == "eql":
-                    try:
-                        values[var_1].eql(var_2)
-                    except ArithmeticError:
-                        # Two options; create new worlds
-                        values[var_1].counter.clear()
+            if instr == "add":
+                values[var_1].add(var_2)
+            elif instr == "mul":
+                values[var_1].mul(var_2)
+            elif instr == "div":
+                values[var_1].div(var_2)
+            elif instr == "mod":
+                values[var_1].mod(var_2)
+            elif instr == "eql":
+                values[var_1].eql(var_2)
 
-                        # option_1 = dict(values)
-                        option_2 = deepcopy(values)
-                        option_2[var_1].counter["ones"] = 1
-                        new_worlds.append(option_2)
-                print(values)
-        worlds.extend(new_worlds)
-
-        # print(values)
-
-        # if command_idx == 35:
-        #     break
-    return worlds
+    return values["x"].assumptions
 
 
-def solve_2(input_list):
-    return
+def solve_1(commands):
+    ass = get_equations(commands)
+    model_nr = 14 * [0]
+    for equation in ass:
+        left, right = equation
+        left_vars = [k for k in left.keys() if k != "ones"]
+        right_vars = [k for k in right.keys() if k != "ones"]
+
+        assert len(left_vars) == 1
+        assert len(right_vars) == 1
+
+        left_var = left_vars[0]
+        right_var = right_vars[0]
+
+        if left.get("ones", 0) > 0:
+            left_val = 9 - left["ones"]
+            right_val = 9
+        elif right.get("ones", 0) > 0:
+            right_val = 9 - right["ones"]
+            left_val = 9
+        elif left.get("ones", 0) < 0:
+            left_val = 9
+            right_val = 9 + left["ones"]
+        elif right.get("ones", 0) < 0:
+            right_val = 9
+            left_val = 9 + right["ones"]
+        else:
+            left_val, right_val = 9, 9
+
+        model_nr[int(left_var.split("_")[1])] = left_val
+        model_nr[int(right_var.split("_")[1])] = right_val
+
+    return int("".join(list(map(str, model_nr))))
+
+
+def solve_2(commands):
+    ass = get_equations(commands)
+    model_nr = 14 * [0]
+    for equation in ass:
+        left, right = equation
+        left_vars = [k for k in left.keys() if k != "ones"]
+        right_vars = [k for k in right.keys() if k != "ones"]
+
+        assert len(left_vars) == 1
+        assert len(right_vars) == 1
+
+        left_var = left_vars[0]
+        right_var = right_vars[0]
+
+        if left.get("ones", 0) > 0:
+            left_val = 1
+            right_val = 1 + left["ones"]
+        elif right.get("ones", 0) > 0:
+            right_val = 1
+            left_val = 1 + right["ones"]
+        elif left.get("ones", 0) < 0:
+            left_val = 1 - left["ones"]
+            right_val = 1
+        elif right.get("ones", 0) < 0:
+            right_val = 1 - right["ones"]
+            left_val = 1
+        else:
+            left_val, right_val = 1, 1
+
+        model_nr[int(left_var.split("_")[1])] = left_val
+        model_nr[int(right_var.split("_")[1])] = right_val
+
+    return int("".join(list(map(str, model_nr))))
 
 
 if __name__ == "__main__":
-    # sample1_input = read_file("data/day_24/sample1.txt")
-    # sample2_input = read_file("data/day_24/sample2.txt")
-    # sample3_input = read_file("data/day_24/sample3.txt")
     real_input = read_file("data/day_24/input.txt")
-    print(real_input)
-    solve_1(real_input)
-
-    # Part 1
-    # assert solve_1(sample1_input) == ..., solve_1(sample1_input)
-    # assert solve_1(sample2_input) == ..., solve_1(sample2_input)
-    # assert solve_1(sample3_input) == ..., solve_1(sample3_input)
-    # print(solve_1(real_input))
-    # assert solve_1(real_input) == ...
-
-    # Part 2
-    # assert solve_2(sample1_input) == ..., solve_2(sample1_input)
-    # assert solve_2(sample2_input) == ..., solve_2(sample2_input)
-    # assert solve_2(sample3_input) == ..., solve_2(sample3_input)
-    # print(solve_2(real_input))
-    # assert solve_2(real_input) == ...
+    assert solve_1(real_input) == 92915979999498
+    assert solve_2(real_input) == 21611513911181
