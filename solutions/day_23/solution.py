@@ -17,20 +17,11 @@ def cave_to_hallway(caves, hallway):
                     ):
                         continue
 
-                    new_caves = (
-                        (caves[:cave_idx])
-                        + (cave[:pos_idx] + (-1,) + cave[pos_idx + 1 :],)
-                        + caves[cave_idx + 1 :]
+                    new_caves = move_to_cave(caves, cave_idx, pos_idx, -1)
+                    new_hallway = move_to_hallway(hallway, hallway_idx, amphi_type)
+                    cost = get_cost(
+                        cave, pos_idx, cave_address, hallway_idx, amphi_type
                     )
-                    new_hallway = (
-                        hallway[:hallway_idx]
-                        + (amphi_type,)
-                        + hallway[hallway_idx + 1 :]
-                    )
-
-                    num_steps = len(cave) - pos_idx + abs(cave_address - hallway_idx)
-                    cost = num_steps * (10 ** amphi_type)
-
                     new_states.append(((new_caves, new_hallway), cost))
     return new_states
 
@@ -38,45 +29,51 @@ def cave_to_hallway(caves, hallway):
 def hallway_to_cave(caves, hallway):
     new_states = []
 
-    # From hallway to cave
     for hallway_idx, amphi_type in enumerate(hallway):
         cave_address = 2 + (amphi_type * 2)
         if amphi_type != -1:
-            if cave_address < hallway_idx:
-                if any(hallway[i] != -1 for i in range(cave_address, hallway_idx)):
-                    continue
-            elif cave_address > hallway_idx:
-                if any(
-                    hallway[i] != -1 for i in range(hallway_idx + 1, cave_address + 1)
-                ):
-                    continue
-
-            dest_cave = caves[amphi_type]
-            if any(t not in [-1, amphi_type] for t in dest_cave):
+            if cave_address < hallway_idx and any(
+                hallway[i] != -1 for i in range(cave_address, hallway_idx)
+            ):
                 continue
-            for pos_idx, dest_type in enumerate(dest_cave):
+            elif cave_address > hallway_idx and any(
+                hallway[i] != -1 for i in range(hallway_idx + 1, cave_address + 1)
+            ):
+                continue
+            elif any(t not in [-1, amphi_type] for t in caves[amphi_type]):
+                continue
+
+            for pos_idx, dest_type in enumerate(caves[amphi_type]):
                 if dest_type == -1:
-                    new_caves = (
-                        (caves[:amphi_type])
-                        + (
-                            dest_cave[:pos_idx]
-                            + (amphi_type,)
-                            + dest_cave[pos_idx + 1 :],
-                        )
-                        + caves[amphi_type + 1 :]
+                    new_caves = move_to_cave(caves, amphi_type, pos_idx, amphi_type)
+                    new_hallway = move_to_hallway(hallway, hallway_idx, -1)
+                    cost = get_cost(
+                        caves[amphi_type],
+                        pos_idx,
+                        cave_address,
+                        hallway_idx,
+                        amphi_type,
                     )
-                    new_hallway = (
-                        hallway[:hallway_idx] + (-1,) + hallway[hallway_idx + 1 :]
-                    )
-
-                    num_steps = (
-                        len(dest_cave) - pos_idx + abs(cave_address - hallway_idx)
-                    )
-                    cost = num_steps * (10 ** amphi_type)
-
                     new_states.append(((new_caves, new_hallway), cost))
                     break
     return new_states
+
+
+def move_to_cave(caves, cave_idx, pos_idx, value):
+    return (
+        (caves[:cave_idx])
+        + (caves[cave_idx][:pos_idx] + (value,) + caves[cave_idx][pos_idx + 1 :],)
+        + caves[cave_idx + 1 :]
+    )
+
+
+def move_to_hallway(hallway, hallway_idx, value):
+    return hallway[:hallway_idx] + (value,) + hallway[hallway_idx + 1 :]
+
+
+def get_cost(cave, pos_idx, cave_address, hallway_idx, amphi_type):
+    num_steps = len(cave) - pos_idx + abs(cave_address - hallway_idx)
+    return num_steps * (10 ** amphi_type)
 
 
 def get_next_states(state):
