@@ -7,15 +7,16 @@ def read_file(input_path: str):
         os.path.abspath(os.path.dirname(__file__)), "..", "..", input_path
     )
     data = []
-    for line in open(input_path).readlines():
-        l = []
-        for segment in line.strip().split():
-            try:
-                segment = int(segment)
-            except ValueError:
-                pass
-            l.append(segment)
-        data.append(l)
+    with open(input_path) as file:
+        for line in file.readlines():
+            command = []
+            for segment in line.strip().split():
+                try:
+                    segment = int(segment)
+                except ValueError:
+                    pass
+                command.append(segment)
+            data.append(command)
     return data
 
 
@@ -72,13 +73,10 @@ class Variable:
             else:
                 for key_idx, key in enumerate(
                     sorted(
-                        self.counter.keys(),
-                        key=lambda x: int(x.split("_")[1]) if "_" in x else -1,
+                        [k for k in self.counter.keys() if k != "ones"],
                     )[::-1]
                 ):
-                    if key == "ones":
-                        continue
-                    elif key_idx > 0:
+                    if key_idx > 0:
                         if self.counter[key] % other == 0:
                             self.counter[key] //= other
                         else:
@@ -128,112 +126,67 @@ class Variable:
                     self.counter.clear()
                     self.counter["ones"] = 0
                 else:
-                    # Two options. Assume we always want the case where values are equal.
-                    c1 = {k: v for k, v in Counter(self.counter).items() if v != 0}
-                    c2 = {k: v for k, v in Counter(other.counter).items() if v != 0}
-
-                    self.assumptions.append([c1, c2])
+                    # Two options. Assume we always want the case where values are equal, in order
+                    # to minimize z.
+                    self.add_assumption(other)
                     self.counter.clear()
                     self.counter["ones"] = 1
 
+    @property
+    def non_zero_counts(self):
+        return {k: v for k, v in Counter(self.counter).items() if v != 0}
+
+    def add_assumption(self, other):
+        self.assumptions.append([self.non_zero_counts, other.non_zero_counts])
+
 
 def get_equations(commands):
-    values = {"w": Variable(), "x": Variable(), "y": Variable(), "z": Variable()}
+    values = {var: Variable() for var in ["w", "x", "y", "z"]}
 
     digit_idx = 0
     for command_idx, command in enumerate(commands):
         instr, var_1 = command[0], command[1]
         if instr == "inp":
-            values[var_1].inp("d_" + str(digit_idx))
+            var_2 = digit_idx
             digit_idx += 1
         else:
             var_2 = command[2]
-
             if isinstance(var_2, str):
                 var_2 = values[var_2]
-
-            if instr == "add":
-                values[var_1].add(var_2)
-            elif instr == "mul":
-                values[var_1].mul(var_2)
-            elif instr == "div":
-                values[var_1].div(var_2)
-            elif instr == "mod":
-                values[var_1].mod(var_2)
-            elif instr == "eql":
-                values[var_1].eql(var_2)
+        getattr(values[var_1], instr)(var_2)
 
     return values["x"].assumptions
 
 
-def solve_1(commands):
+def get_var(equation_side):
+    vars = [k for k in equation_side.keys() if k != "ones"]
+    assert len(vars) == 1
+    return vars[0]
+
+
+def solve(commands, init_val, mode):
     ass = get_equations(commands)
     model_nr = 14 * [0]
     for equation in ass:
         left, right = equation
-        left_vars = [k for k in left.keys() if k != "ones"]
-        right_vars = [k for k in right.keys() if k != "ones"]
+        left_val, right_val = init_val, init_val
+        constant = left.get("ones", 0)
 
-        assert len(left_vars) == 1
-        assert len(right_vars) == 1
+        right_val += (mode * constant < 0) * constant
+        left_val -= (mode * constant > 0) * constant
 
-        left_var = left_vars[0]
-        right_var = right_vars[0]
-
-        if left.get("ones", 0) > 0:
-            left_val = 9 - left["ones"]
-            right_val = 9
-        elif right.get("ones", 0) > 0:
-            right_val = 9 - right["ones"]
-            left_val = 9
-        elif left.get("ones", 0) < 0:
-            left_val = 9
-            right_val = 9 + left["ones"]
-        elif right.get("ones", 0) < 0:
-            right_val = 9
-            left_val = 9 + right["ones"]
-        else:
-            left_val, right_val = 9, 9
-
-        model_nr[int(left_var.split("_")[1])] = left_val
-        model_nr[int(right_var.split("_")[1])] = right_val
+        model_nr[get_var(left)] = left_val
+        model_nr[get_var(right)] = right_val
 
     return int("".join(list(map(str, model_nr))))
+
+
+def solve_1(commands):
+    return solve(commands, 9, 1)
 
 
 def solve_2(commands):
-    ass = get_equations(commands)
-    model_nr = 14 * [0]
-    for equation in ass:
-        left, right = equation
-        left_vars = [k for k in left.keys() if k != "ones"]
-        right_vars = [k for k in right.keys() if k != "ones"]
-
-        assert len(left_vars) == 1
-        assert len(right_vars) == 1
-
-        left_var = left_vars[0]
-        right_var = right_vars[0]
-
-        if left.get("ones", 0) > 0:
-            left_val = 1
-            right_val = 1 + left["ones"]
-        elif right.get("ones", 0) > 0:
-            right_val = 1
-            left_val = 1 + right["ones"]
-        elif left.get("ones", 0) < 0:
-            left_val = 1 - left["ones"]
-            right_val = 1
-        elif right.get("ones", 0) < 0:
-            right_val = 1 - right["ones"]
-            left_val = 1
-        else:
-            left_val, right_val = 1, 1
-
-        model_nr[int(left_var.split("_")[1])] = left_val
-        model_nr[int(right_var.split("_")[1])] = right_val
-
-    return int("".join(list(map(str, model_nr))))
+    return solve(commands, 1, -1)
 
 
 if __name__ == "__main__":
