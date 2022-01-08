@@ -56,24 +56,19 @@ class Variable:
 
     def div(self, other):
         if isinstance(other, int):
-            if other == 1:
-                pass
-            else:
-                for key_idx, key in enumerate(
-                    sorted(
-                        [k for k in self.counter.keys() if k != "ones"],
-                    )[::-1]
-                ):
-                    if key_idx > 0:
-                        if self.counter[key] % other == 0:
-                            self.counter[key] //= other
-                    elif key_idx == 0:
-                        max_remainder = (
-                            self.counter["ones"] % other + 9 * self.counter[key]
-                        )
-                        if max_remainder < other:
-                            self.counter["ones"] //= other
-                            self.counter[key] = 0
+            for key_idx, key in enumerate(
+                sorted(
+                    [k for k in self.counter.keys() if k != "ones"],
+                )[::-1]
+            ):
+                if key_idx > 0:
+                    if self.counter[key] % other == 0:
+                        self.counter[key] //= other
+                elif key_idx == 0:
+                    max_remainder = self.counter["ones"] % other + 9 * self.counter[key]
+                    if max_remainder < other:
+                        self.counter["ones"] //= other
+                        self.counter[key] = 0
 
     def mod(self, other):
         if isinstance(other, int):
@@ -89,23 +84,16 @@ class Variable:
                 new_val = int(self.counter["ones"] == other)
                 self.counter.clear()
                 self.counter["ones"] = new_val
-            elif sum(self.counter) == 0 and other == 0:
+        elif isinstance(other, Variable):
+            if self.max_sum < other.min_sum or other.max_sum < self.min_sum:
                 self.counter.clear()
-                self.counter["ones"] = 1
-        if isinstance(other, Variable):
-            if self.counter == other.counter:
-                self.counter.clear()
-                self.counter["ones"] = 1
+                self.counter["ones"] = 0
             else:
-                if self.max_sum < other.min_sum or other.max_sum < self.min_sum:
-                    self.counter.clear()
-                    self.counter["ones"] = 0
-                else:
-                    # Two options. Assume we always want the case where values are equal, in order
-                    # to minimize z.
-                    self.equations.append([Counter(self.counter), Counter(other.counter)])
-                    self.counter.clear()
-                    self.counter["ones"] = 1
+                # Two options. Assume we always want the case where values are equal, in order
+                # to minimize z.
+                self.equations.append([Counter(self.counter), Counter(other.counter)])
+                self.counter.clear()
+                self.counter["ones"] = 1
 
 
 def get_equations(commands):
