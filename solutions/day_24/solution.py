@@ -21,8 +21,9 @@ def read_file(input_path: str):
 
 
 class Variable:
-    def __init__(self):
+    def __init__(self, offset = 0):
         self.counter = Counter()
+        self.offset = offset
         self.equations = []
 
     @property
@@ -34,66 +35,58 @@ class Variable:
         return sum(self.counter.values())
 
     def inp(self, other):
-        self.counter.clear()
         self.counter = other.counter
 
     def add(self, other):
-        if isinstance(other, int):
-            self.counter["ones"] += other
-        elif isinstance(other, Variable):
-            self.counter += other.counter
+        self.counter.update(other.counter)
 
     def mul(self, other):
-        if isinstance(other, int):
-            for key in self.counter:
-                self.counter[key] *= other
-        elif isinstance(other, Variable):
-            new_counter = Counter()
-            for key in self.counter:
-                for key_other in other.counter:
-                    new_counter[key] += other.counter[key_other] * self.counter[key]
-            self.counter = new_counter
+        new_counter = Counter()
+        for key in self.counter:
+            for key_other in other.counter:
+                new_counter[key] += other.counter[key_other] * self.counter[key]
+        self.counter = new_counter
 
     def div(self, other):
-        if isinstance(other, int):
-            for key_idx, key in enumerate(
-                sorted(
-                    [k for k in self.counter.keys() if k != "ones"],
-                )[::-1]
-            ):
-                if key_idx > 0:
-                    if self.counter[key] % other == 0:
-                        self.counter[key] //= other
-                elif key_idx == 0:
-                    max_remainder = self.counter["ones"] % other + 9 * self.counter[key]
-                    if max_remainder < other:
-                        self.counter["ones"] //= other
-                        self.counter[key] = 0
-
-    def mod(self, other):
-        if isinstance(other, int):
-            for key in self.counter:
-                if key == "ones":
-                    self.counter[key] %= other
-                elif self.counter[key] % other == 0:
+        other = other.counter["ones"]
+        for key_idx, key in enumerate(
+            sorted(
+                [k for k, v in self.counter.items() if k != "ones" and v != 0],reverse=True
+            )
+        ):
+            if key_idx > 0:
+                if self.counter[key] % other == 0:
+                    self.counter[key] //= other
+            elif key_idx == 0:
+                max_remainder = self.counter["ones"] % other + 9 * self.counter[key]
+                if max_remainder < other:
+                    self.counter["ones"] //= other
                     self.counter[key] = 0
 
+    def mod(self, other):
+        other = other.counter["ones"]
+        for key in self.counter:
+            if key == "ones":
+                self.counter[key] %= other
+            elif self.counter[key] % other == 0:
+                self.counter[key] = 0
+
     def eql(self, other):
-        if isinstance(other, int):
-            if list(self.counter.keys()) == ["ones"]:
-                new_val = int(self.counter["ones"] == other)
-                self.counter.clear()
-                self.counter["ones"] = new_val
-        elif isinstance(other, Variable):
-            if self.max_sum < other.min_sum or other.max_sum < self.min_sum:
-                self.counter.clear()
-                self.counter["ones"] = 0
-            else:
-                # Two options. Assume we always want the case where values are equal, in order
-                # to minimize z.
-                self.equations.append([Counter(self.counter), Counter(other.counter)])
-                self.counter.clear()
-                self.counter["ones"] = 1
+        if list(self.counter.keys()) == ["ones"] and list(other.counter.keys()) == [
+            "ones"
+        ]:
+            new_val = int(self.counter["ones"] == other.counter["ones"])
+            self.counter.clear()
+            self.counter["ones"] = new_val
+        elif self.max_sum < other.min_sum or other.max_sum < self.min_sum:
+            self.counter.clear()
+            self.counter["ones"] = 0
+        else:
+            # Two options. Assume we always want the case where values are equal, in order
+            # to minimize z.
+            self.equations.append([Counter(self.counter), Counter(other.counter)])
+            self.counter.clear()
+            self.counter["ones"] = 1
 
 
 def get_equations(commands):
@@ -110,6 +103,9 @@ def get_equations(commands):
             var_2 = command[2]
             if isinstance(var_2, str):
                 var_2 = values[var_2]
+            elif isinstance(var_2, int):
+                var_2 = Variable()
+                var_2.counter = Counter({"ones": command[2]})
         getattr(values[var_1], instr)(var_2)
 
     return values["x"].equations
@@ -148,5 +144,5 @@ def solve_2(commands):
 
 if __name__ == "__main__":
     real_input = read_file("data/day_24/input.txt")
-    assert solve_1(real_input) == 92915979999498
+    assert solve_1(real_input) == 92915979999498, solve_1(real_input)
     assert solve_2(real_input) == 21611513911181
