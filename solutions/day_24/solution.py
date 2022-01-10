@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os
 from collections import Counter
 
@@ -21,72 +23,72 @@ def read_file(input_path: str):
 
 
 class Variable:
-    def __init__(self, offset = 0):
-        self.counter = Counter()
-        self.offset = offset
+    def __init__(self, init_counts: dict = None):
+        self.counter = Counter(init_counts)
         self.equations = []
 
     @property
     def max_sum(self):
-        return 9 * self.min_sum - 8 * self.counter["ones"]
+        return 9 * self.min_sum - 8 * self.offset
 
     @property
     def min_sum(self):
         return sum(self.counter.values())
 
-    def inp(self, other):
+    @property
+    def offset(self):
+        return self.counter[-1]
+
+    @property
+    def no_vars(self):
+        return list(self.counter.keys()) == [-1]
+
+    def set_offset(self, offset):
+        self.counter[-1] = offset
+
+    def inp(self, other: Variable):
         self.counter = other.counter
 
-    def add(self, other):
+    def add(self, other: Variable):
         self.counter.update(other.counter)
 
-    def mul(self, other):
+    def mul(self, other: Variable):
         new_counter = Counter()
         for key in self.counter:
             for key_other in other.counter:
                 new_counter[key] += other.counter[key_other] * self.counter[key]
         self.counter = new_counter
 
-    def div(self, other):
-        other = other.counter["ones"]
+    def div(self, other: Variable):
         for key_idx, key in enumerate(
             sorted(
-                [k for k, v in self.counter.items() if k != "ones" and v != 0],reverse=True
-            )
+                [k for k, v in self.counter.items() if v != 0],
+                reverse=True,
+            )[:-1]
         ):
-            if key_idx > 0:
-                if self.counter[key] % other == 0:
-                    self.counter[key] //= other
+            if key_idx > 0 and self.counter[key] % other.offset == 0:
+                self.counter[key] //= other.offset
             elif key_idx == 0:
-                max_remainder = self.counter["ones"] % other + 9 * self.counter[key]
-                if max_remainder < other:
-                    self.counter["ones"] //= other
+                max_remainder = self.offset % other.offset + 9 * self.counter[key]
+                if max_remainder < other.offset:
+                    self.set_offset(self.offset // other.offset)
                     self.counter[key] = 0
 
-    def mod(self, other):
-        other = other.counter["ones"]
+    def mod(self, other: Variable):
         for key in self.counter:
-            if key == "ones":
-                self.counter[key] %= other
-            elif self.counter[key] % other == 0:
-                self.counter[key] = 0
+            self.counter[key] %= other.offset
 
-    def eql(self, other):
-        if list(self.counter.keys()) == ["ones"] and list(other.counter.keys()) == [
-            "ones"
-        ]:
-            new_val = int(self.counter["ones"] == other.counter["ones"])
-            self.counter.clear()
-            self.counter["ones"] = new_val
+    def eql(self, other: Variable):
+        if self.no_vars and other.no_vars:
+            new_val = int(self.offset == other.offset)
         elif self.max_sum < other.min_sum or other.max_sum < self.min_sum:
-            self.counter.clear()
-            self.counter["ones"] = 0
+            new_val = 0
         else:
-            # Two options. Assume we always want the case where values are equal, in order
-            # to minimize z.
+            # Assume we always want the case where values are equal, in order to minimize z.
             self.equations.append([Counter(self.counter), Counter(other.counter)])
-            self.counter.clear()
-            self.counter["ones"] = 1
+            new_val = 1
+        self.counter.clear()
+        self.set_offset(new_val)
 
 
 def get_equations(commands):
@@ -96,23 +98,22 @@ def get_equations(commands):
     for command_idx, command in enumerate(commands):
         instr, var_1 = command[0], command[1]
         if instr == "inp":
-            var_2 = Variable()
-            var_2.counter = Counter({digit_idx: 1})
+            var_2 = Variable({digit_idx: 1})
             digit_idx += 1
         else:
-            var_2 = command[2]
-            if isinstance(var_2, str):
-                var_2 = values[var_2]
-            elif isinstance(var_2, int):
-                var_2 = Variable()
-                var_2.counter = Counter({"ones": command[2]})
+            if isinstance(command[2], str):
+                var_2 = values[command[2]]
+            elif isinstance(command[2], int):
+                var_2 = Variable({-1: command[2]})
+            else:
+                raise ValueError
         getattr(values[var_1], instr)(var_2)
 
     return values["x"].equations
 
 
 def get_var(equation_side):
-    vars = [key for key, count in equation_side.items() if key != "ones" and count != 0]
+    vars = [key for key, count in equation_side.items() if key != -1 and count != 0]
     assert len(vars) == 1, vars
     return vars[0]
 
@@ -123,7 +124,7 @@ def solve(commands, init_val, mode):
     for equation in ass:
         left, right = equation
         left_val, right_val = init_val, init_val
-        constant = left.get("ones", 0)
+        constant = left.get(-1, 0)
 
         right_val += (mode * constant < 0) * constant
         left_val -= (mode * constant > 0) * constant
