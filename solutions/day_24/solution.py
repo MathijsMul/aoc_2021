@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 from collections import Counter
+from typing import List, Union, Callable
 
 
 def read_file(input_path: str):
@@ -23,8 +24,9 @@ def read_file(input_path: str):
 
 
 class Variable:
-    def __init__(self, init_counts: dict = None):
+    def __init__(self, init_counts: dict = None, offset: int = 0):
         self.counter = Counter(init_counts)
+        self.set_offset(offset)
         self.equations = []
 
     @property
@@ -43,7 +45,13 @@ class Variable:
     def no_vars(self):
         return list(self.counter.keys()) == [-1]
 
-    def set_offset(self, offset):
+    @property
+    def main_var(self):
+        return next(
+            key for key, count in self.counter.items() if key != -1 and count != 0
+        )
+
+    def set_offset(self, offset: int):
         self.counter[-1] = offset
 
     def inp(self, other: Variable):
@@ -85,13 +93,13 @@ class Variable:
             new_val = 0
         else:
             # Assume we always want the case where values are equal, in order to minimize z.
-            self.equations.append([Counter(self.counter), Counter(other.counter)])
+            self.equations.append((self.main_var, other.main_var, self.offset))
             new_val = 1
         self.counter.clear()
         self.set_offset(new_val)
 
 
-def get_equations(commands):
+def get_equations(commands: List[List[Union[str, int]]]):
     values = {var: Variable() for var in ["w", "x", "y", "z"]}
 
     digit_idx = 0
@@ -100,50 +108,40 @@ def get_equations(commands):
         if instr == "inp":
             var_2 = Variable({digit_idx: 1})
             digit_idx += 1
+        elif isinstance(command[2], str):
+            var_2 = values[command[2]]
+        elif isinstance(command[2], int):
+            var_2 = Variable(offset=command[2])
         else:
-            if isinstance(command[2], str):
-                var_2 = values[command[2]]
-            elif isinstance(command[2], int):
-                var_2 = Variable({-1: command[2]})
-            else:
-                raise ValueError
+            raise ValueError
         getattr(values[var_1], instr)(var_2)
 
     return values["x"].equations
 
 
-def get_var(equation_side):
-    vars = [key for key, count in equation_side.items() if key != -1 and count != 0]
-    assert len(vars) == 1, vars
-    return vars[0]
-
-
-def solve(commands, init_val, mode):
-    ass = get_equations(commands)
+def solve(commands: List[List[Union[str, int]]], init_val: int, method: Callable):
+    mode = method(-1, 1)
+    system = get_equations(commands)
     model_nr = 14 * [0]
-    for equation in ass:
-        left, right = equation
-        left_val, right_val = init_val, init_val
-        constant = left.get(-1, 0)
+    for equation in system:
+        left_var, right_var, constant = equation
+        model_nr[left_var] = init_val - (mode * constant > 0) * constant
+        model_nr[right_var] = init_val + (mode * constant < 0) * constant
 
-        right_val += (mode * constant < 0) * constant
-        left_val -= (mode * constant > 0) * constant
-
-        model_nr[get_var(left)] = left_val
-        model_nr[get_var(right)] = right_val
-
-    return int("".join(list(map(str, model_nr))))
+    return int("".join(map(str, model_nr)))
 
 
 def solve_1(commands):
-    return solve(commands, 9, 1)
+    """Get maximum model nr."""
+    return solve(commands, 9, max)
 
 
 def solve_2(commands):
-    return solve(commands, 1, -1)
+    """Get minimum model nr."""
+    return solve(commands, 1, min)
 
 
 if __name__ == "__main__":
     real_input = read_file("data/day_24/input.txt")
-    assert solve_1(real_input) == 92915979999498, solve_1(real_input)
+    assert solve_1(real_input) == 92915979999498
     assert solve_2(real_input) == 21611513911181
