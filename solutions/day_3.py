@@ -1,13 +1,10 @@
-import fileinput
-import os
 from typing import List, Tuple, Callable, Iterable
 
+from utils import read_file
 
-def read_file(input_path: str):
-    input_path = os.path.join(
-        os.path.abspath(os.path.dirname(__file__)), "..", "..", input_path
-    )
-    return [list(map(int, line.strip())) for line in fileinput.input(input_path)]
+
+def parse_input(input_path: str):
+    return [list(map(int, line.strip())) for line in read_file(input_path)]
 
 
 def gamma(column: Tuple[int]) -> int:
@@ -49,8 +46,8 @@ def solve_2(input_list: List[List[int]]):
 
 
 if __name__ == "__main__":
-    sample_input = read_file("data/day_3/sample.txt")
-    real_input = read_file("data/day_3/input.txt")
+    sample_input = parse_input("data/day_3/sample.txt")
+    real_input = parse_input("data/day_3/input.txt")
 
     # Part 1
     assert solve_1(sample_input) == 198, solve_1(sample_input)

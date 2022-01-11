@@ -1,20 +1,16 @@
-import fileinput
-import os
+from utils import read_file
 
 
-def read_file(input_path: str):
-    input_path = os.path.join(
-        os.path.abspath(os.path.dirname(__file__)), "..", "..", input_path
-    )
-    return map(
-        lambda command: (command[0], int(command[1])),
-        (line.split() for line in fileinput.input(input_path)),
+def parse_input(input_path: str):
+    return list(
+        map(
+            lambda command: (command[0], int(command[1])),
+            (line.split() for line in read_file(input_path)),
+        )
     )
 
 
-def solve_1(path):
-    itinerary = read_file(path)
-
+def solve_1(itinerary):
     depth, horiz = 0, 0
     for direction, units in itinerary:
         depth += ((direction == "down") - (direction == "up")) * units
@@ -22,9 +18,7 @@ def solve_1(path):
     return depth * horiz
 
 
-def solve_2(path):
-    itinerary = read_file(path)
-
+def solve_2(itinerary):
     aim, depth, horiz = 0, 0, 0
     for direction, units in itinerary:
         horiz += (direction == "forward") * units
@@ -34,13 +28,13 @@ def solve_2(path):
 
 
 if __name__ == "__main__":
-    sample_path = "data/day_2/sample.txt"
-    input_path = "data/day_2/input.txt"
+    sample_input = parse_input("data/day_2/sample.txt")
+    real_input = parse_input("data/day_2/input.txt")
 
     # Part 1
-    assert solve_1(sample_path) == 150, solve_1(sample_path)
-    assert solve_1(input_path) == 1728414
+    assert solve_1(sample_input) == 150
+    assert solve_1(real_input) == 1728414
 
     # Part 2
-    assert solve_2(sample_path) == 900
-    assert solve_2(input_path) == 1765720035
+    assert solve_2(sample_input) == 900
+    assert solve_2(real_input) == 1765720035
