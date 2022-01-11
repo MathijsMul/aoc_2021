@@ -1,15 +1,14 @@
-import os
-import numpy as np
-from itertools import product
 from functools import reduce
+from itertools import product
+
+import numpy as np
+
+from utils import read_file
 
 
-def read_file(input_path: str):
-    input_path = os.path.join(
-        os.path.abspath(os.path.dirname(__file__)), "..", "..", input_path
-    )
+def parse_input(input_path: str):
     all_input = []
-    for line_idx, line in enumerate(open(input_path).readlines()):
+    for line_idx, line in enumerate(read_file(input_path)):
         all_input.append(list(map(int, list(line.strip().split()[0]))))
     return np.array(all_input).reshape((line_idx + 1, -1))
 
@@ -19,7 +18,6 @@ def solve_1(input_array: np.ndarray):
     min_bools = np.zeros(shape)
     for x in range(shape[0]):
         for y in range(shape[1]):
-            # print(f"Current nr: {input_array[x,y]} at {x,y}")
             adjacent_nrs = get_adjacent_nrs(input_array, x, y)
             if min(adjacent_nrs) > input_array[x, y]:
                 min_bools[x, y] = 1
@@ -63,7 +61,6 @@ def solve_2(input_array: np.ndarray):
             if any(loc in basin for loc in basin_neighbor_indices):
                 basin.update(basin_neighbor_indices)
                 existing_basin = True
-
         if not existing_basin:
             basins.append(basin_neighbor_indices)
 
@@ -81,9 +78,9 @@ def solve_2(input_array: np.ndarray):
 
 
 if __name__ == "__main__":
-    sample_input = read_file("data/day_9/sample.txt")
-    sample2_input = read_file("data/day_9/sample2.txt")
-    real_input = read_file("data/day_9/input.txt")
+    sample_input = parse_input("data/day_9/sample.txt")
+    sample2_input = parse_input("data/day_9/sample2.txt")
+    real_input = parse_input("data/day_9/input.txt")
 
     assert solve_1(sample_input) == 15
     assert solve_1(real_input) == 580

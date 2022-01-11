@@ -1,13 +1,10 @@
-import os
-
 import numpy as np
 
+from utils import read_file
 
-def read_file(input_path: str):
-    input_path = os.path.join(
-        os.path.abspath(os.path.dirname(__file__)), "..", "..", input_path
-    )
-    return np.array(list(map(int, open(input_path).readlines()[0].strip().split(","))))
+
+def parse_input(input_path: str):
+    return np.array(list(map(int, read_file(input_path)[0].strip().split(","))))
 
 
 def get_distances(input):
@@ -31,8 +28,8 @@ def solve_2(input):
 
 
 if __name__ == "__main__":
-    sample_input = read_file("data/day_7/sample.txt")
-    real_input = read_file("data/day_7/input.txt")
+    sample_input = parse_input("data/day_7/sample.txt")
+    real_input = parse_input("data/day_7/input.txt")
 
     # Part 1
     assert solve_1(sample_input) == 37

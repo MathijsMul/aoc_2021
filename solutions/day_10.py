@@ -1,11 +1,8 @@
-import os
+from utils import read_file
 
 
-def read_file(input_path: str):
-    input_path = os.path.join(
-        os.path.abspath(os.path.dirname(__file__)), "..", "..", input_path
-    )
-    return [line.strip() for line in open(input_path).readlines()]
+def parse_input(input_path: str):
+    return [line.strip() for line in read_file(input_path)]
 
 
 OPEN_TO_CLOSE = {"(": ")", "[": "]", "{": "}", "<": ">"}
@@ -55,8 +52,8 @@ def solve(input_list):
 
 
 if __name__ == "__main__":
-    sample_input = read_file("data/day_10/sample.txt")
-    real_input = read_file("data/day_10/input.txt")
+    sample_input = parse_input("data/day_10/sample.txt")
+    real_input = parse_input("data/day_10/input.txt")
 
     assert solve(sample_input)[0] == 26397
     assert solve(real_input)[0] == 166191

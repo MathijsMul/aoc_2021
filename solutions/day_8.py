@@ -1,14 +1,11 @@
-import os
 from collections import Counter, defaultdict
-import numpy as np
+
+from utils import read_file
 
 
-def read_file(input_path: str):
-    input_path = os.path.join(
-        os.path.abspath(os.path.dirname(__file__)), "..", "..", input_path
-    )
+def parse_input(input_path: str):
     all_input = []
-    for line in open(input_path).readlines():
+    for line in read_file(input_path):
         all_input.append(
             [
                 [set(signal) for signal in part.strip().split()]
@@ -16,29 +13,6 @@ def read_file(input_path: str):
             ]
         )
     return all_input
-
-
-def get_digits(input_path: str = "../../data/day_8/digits.csv"):
-    with open(input_path, encoding='utf-8-sig') as f:
-        return np.genfromtxt(f, dtype=int, delimiter=',')
-
-
-def get_digit_lengths(digit_matrix):
-    return Counter(digit_matrix.sum(0))
-
-
-def get_unique_lengths(digit_matrix):
-    counts = get_digit_lengths(digit_matrix)
-    return [length for length in counts if counts[length] == 1]
-
-
-def solve_1(input_list):
-    unique_counter = Counter()
-    for _, output in input_list:
-        for digit in output:
-            unique_counter[len(digit)] += 1
-    unique_lengths = get_unique_lengths(get_digits())
-    return sum(unique_counter[i] for i in unique_lengths)
 
 
 def construct_mapping(mapping, length, signal):
@@ -83,6 +57,15 @@ def get_mapping(input_signals, output_signals):
     return {"".join(sorted(int2set[i])): str(i) for i in int2set}
 
 
+def solve_1(input_list):
+    unique_counter = Counter()
+    for _, output in input_list:
+        for digit in output:
+            unique_counter[len(digit)] += 1
+    unique_lengths = [2, 3, 4, 7]
+    return sum(unique_counter[i] for i in unique_lengths)
+
+
 def solve_2(input_list):
     sum = 0
     for input_sig, output_sig in input_list:
@@ -92,11 +75,8 @@ def solve_2(input_list):
 
 
 if __name__ == "__main__":
-    sample_input = read_file("data/day_8/sample.txt")
-    real_input = read_file("data/day_8/input.txt")
-
-    print(get_digits())
-    # exit()
+    sample_input = parse_input("data/day_8/sample.txt")
+    real_input = parse_input("data/day_8/input.txt")
 
     assert solve_1(sample_input) == 26
     assert solve_1(real_input) == 495

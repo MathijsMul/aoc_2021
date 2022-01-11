@@ -1,18 +1,15 @@
-import fileinput
-import os
 import re
 
 import numpy as np
 
+from utils import read_file
 
-def read_file(input_path: str):
-    input_path = os.path.join(
-        os.path.abspath(os.path.dirname(__file__)), "..", "..", input_path
-    )
+
+def parse_input(input_path: str):
     return np.array(
         [
             list(map(int, re.split("\\->|,", line.strip())))
-            for line in fileinput.input(input_path)
+            for line in read_file(input_path)
         ]
     ).reshape(-1, 2, 2)
 
@@ -34,11 +31,10 @@ def fill_grid_straight(grid, input):
         if len(compared) > 0:
             axis = compared[0][0]
             path1 = np.arange(min(vent[:, 1 - axis]), max(vent[:, 1 - axis]) + 1)
-            vent_size = path1.size
-            path2 = np.full(vent_size, vent[0, axis])
+            path2 = np.full(path1.size, vent[0, axis])
             paths = [path1, path2]
 
-            for i in range(vent_size):
+            for i in range(path1.size):
                 grid[paths[1 - axis][i], paths[axis][i]] += 1
 
     return get_score(grid)
@@ -82,8 +78,8 @@ def solve_2(input_list):
 
 
 if __name__ == "__main__":
-    sample_input = read_file("data/day_5/sample.txt")
-    real_input = read_file("data/day_5/input.txt")
+    sample_input = parse_input("data/day_5/sample.txt")
+    real_input = parse_input("data/day_5/input.txt")
 
     # Part 1
     assert solve_1(sample_input) == 5
