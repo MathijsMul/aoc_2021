@@ -1,15 +1,13 @@
-import os
 from queue import PriorityQueue
 
 import numpy as np
 
+from utils import read_file
 
-def read_file(input_path: str):
-    input_path = os.path.join(
-        os.path.abspath(os.path.dirname(__file__)), "..", "..", input_path
-    )
+
+def parse_input(input_path: str, idx=0):
     locs = []
-    for idx, line in enumerate(open(input_path).readlines()):
+    for idx, line in enumerate(read_file(input_path)):
         locs.append(list(map(int, list(line.strip()))))
     return np.array(locs).reshape(-1, idx + 1)
 
@@ -29,12 +27,11 @@ def get_adjacent_indices(input_array, x, y):
 
 
 def get_min_costs(array):
-    """https://www.redblobgames.com/pathfinding/a-star/introduction.html#dijkstra"""
+    """See https://www.redblobgames.com/pathfinding/a-star/introduction.html#dijkstra"""
     frontier = PriorityQueue()
     start = (0, 0)
     frontier.put(start, 0)
-    came_from = dict()
-    cost_so_far = dict()
+    came_from, cost_so_far = dict(), dict()
     came_from[start] = None
     cost_so_far[start] = 0
     goal = (array.shape[0] - 1, array.shape[1] - 1)
@@ -74,8 +71,8 @@ def solve_2(input_array):
 
 
 if __name__ == "__main__":
-    sample1_input = read_file("data/day_15/sample1.txt")
-    real_input = read_file("data/day_15/input.txt")
+    sample1_input = parse_input("data/day_15/sample1.txt")
+    real_input = parse_input("data/day_15/input.txt")
 
     # Part 1
     assert solve_1(sample1_input) == 40, solve_1(sample1_input)

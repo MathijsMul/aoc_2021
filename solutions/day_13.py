@@ -1,15 +1,12 @@
-import os
-
 import matplotlib.pyplot as plt
 import numpy as np
 
+from utils import read_file
 
-def read_file(input_path: str):
-    input_path = os.path.join(
-        os.path.abspath(os.path.dirname(__file__)), "..", "..", input_path
-    )
+
+def parse_input(input_path: str):
     dots, folds = [], []
-    for line in open(input_path).readlines():
+    for line in read_file(input_path):
         if "," in line:
             dots.append(tuple(map(int, line.strip().split(","))))
         elif "fold" in line:
@@ -55,8 +52,8 @@ def solve_2(input):
 
 
 if __name__ == "__main__":
-    sample1_input = read_file("data/day_13/sample1.txt")
-    real_input = read_file("data/day_13/input.txt")
+    sample1_input = parse_input("data/day_13/sample1.txt")
+    real_input = parse_input("data/day_13/input.txt")
 
     # Part 1
     assert solve_1(sample1_input) == 17, solve_1(sample1_input)

@@ -1,13 +1,10 @@
-import os
+from utils import read_file
 from collections import Counter
 
 
-def read_file(input_path: str):
-    input_path = os.path.join(
-        os.path.abspath(os.path.dirname(__file__)), "..", "..", input_path
-    )
+def parse_input(input_path: str, template=None):
     rules = {}
-    for idx, line in enumerate(open(input_path).readlines()):
+    for idx, line in enumerate(read_file(input_path)):
         if idx == 0:
             template = line.strip()
         elif "->" in line:
@@ -44,8 +41,8 @@ def solve_2(template, insertion_rules):
 
 
 if __name__ == "__main__":
-    sample_input = read_file("data/day_14/sample.txt")
-    real_input = read_file("data/day_14/input.txt")
+    sample_input = parse_input("data/day_14/sample.txt")
+    real_input = parse_input("data/day_14/input.txt")
 
     # Part 1
     assert solve_1(*sample_input) == 1588, solve_1(*sample_input)

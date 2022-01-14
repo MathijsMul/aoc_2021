@@ -1,12 +1,10 @@
-import os
 from collections import defaultdict, Counter
 
+from utils import read_file
 
-def read_file(input_path: str):
-    input_path = os.path.join(
-        os.path.abspath(os.path.dirname(__file__)), "..", "..", input_path
-    )
-    return [line.strip().split("-") for line in open(input_path).readlines()]
+
+def parse_input(input_path: str):
+    return [line.strip().split("-") for line in read_file(input_path)]
 
 
 def get_map(connections):
@@ -64,10 +62,10 @@ def solve_2(input_list):
 
 
 if __name__ == "__main__":
-    sample1_input = read_file("data/day_12/sample1.txt")
-    sample2_input = read_file("data/day_12/sample2.txt")
-    sample3_input = read_file("data/day_12/sample3.txt")
-    real_input = read_file("data/day_12/input.txt")
+    sample1_input = parse_input("data/day_12/sample1.txt")
+    sample2_input = parse_input("data/day_12/sample2.txt")
+    sample3_input = parse_input("data/day_12/sample3.txt")
+    real_input = parse_input("data/day_12/input.txt")
 
     # Part 1
     assert solve_1(sample1_input) == 10, solve_1(sample1_input)

@@ -1,14 +1,13 @@
-import os
-import numpy as np
 from itertools import product
 
+import numpy as np
 
-def read_file(input_path: str):
-    input_path = os.path.join(
-        os.path.abspath(os.path.dirname(__file__)), "..", "..", input_path
-    )
+from utils import read_file
+
+
+def parse_input(input_path: str):
     return np.array(
-        [list(map(int, list(line.strip()))) for line in open(input_path).readlines()]
+        [list(map(int, list(line.strip()))) for line in read_file(input_path)]
     )
 
 
@@ -21,16 +20,20 @@ def get_adjacent_indices(input_array, x, y):
     )
 
 
+def flash(array, flash_idx=0):
+    for flash_idx, (x, y) in enumerate(np.argwhere(array == 10)):
+        for loc in get_adjacent_indices(array, x, y):
+            if array[loc] not in [10, -1]:
+                array[loc] += 1
+        array[x, y] = -1
+    return flash_idx + 1
+
+
 def simulate_step(array: np.ndarray) -> (np.ndarray, int):
     num_flashes = 0
     array += 1
     while array[array == 10].size > 0:
-        for x, y in np.argwhere(array == 10):
-            num_flashes += 1
-            for loc in get_adjacent_indices(array, x, y):
-                if array[loc] not in [10, -1]:
-                    array[loc] += 1
-            array[x, y] = -1
+        num_flashes += flash(array)
     array[array == -1] = 0
     return array, num_flashes
 
@@ -49,13 +52,13 @@ def solve_2(input_array: np.ndarray) -> int:
 
 if __name__ == "__main__":
     # Part 1
-    sample_input = read_file("data/day_11/sample.txt")
-    real_input = read_file("data/day_11/input.txt")
+    sample_input = parse_input("data/day_11/sample.txt")
+    real_input = parse_input("data/day_11/input.txt")
     assert solve_1(sample_input) == 1656, solve_1(sample_input)
     assert solve_1(real_input) == 1686
 
     # Part 2
-    sample_input = read_file("data/day_11/sample.txt")
-    real_input = read_file("data/day_11/input.txt")
+    sample_input = parse_input("data/day_11/sample.txt")
+    real_input = parse_input("data/day_11/input.txt")
     assert solve_2(sample_input) == 195, solve_2(sample_input)
     assert solve_2(real_input) == 360, solve_2(real_input)
