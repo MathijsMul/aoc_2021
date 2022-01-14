@@ -1,32 +1,8 @@
-import os
-from functools import reduce
 from dataclasses import dataclass
+from functools import reduce
 from operator import add, mul, gt, lt, eq
 
-
-def read_file(input_path: str):
-    input_path = os.path.join(
-        os.path.abspath(os.path.dirname(__file__)), "..", "..", input_path
-    )
-    return open(input_path).read()
-
-
-def get_mapping(mapping_file):
-    mapping_file = os.path.join(
-        os.path.abspath(os.path.dirname(__file__)), "..", "..", mapping_file
-    )
-    mapping = dict()
-    for line in open(mapping_file).readlines():
-        hexa, binary = line.strip().split(" = ")
-        mapping[hexa] = binary
-    return mapping
-
-
-def hex2bin(message, mapping):
-    bin = ""
-    for hex_symbol in message:
-        bin += mapping[hex_symbol]
-    return bin
+from utils import read_file
 
 
 @dataclass
@@ -60,6 +36,21 @@ class Literal(Packet):
     type: int
 
 
+def get_mapping(mapping_file):
+    mapping = dict()
+    for line in read_file(mapping_file):
+        hexa, binary = line.strip().split(" = ")
+        mapping[hexa] = binary
+    return mapping
+
+
+def hex2bin(message, mapping):
+    bin = ""
+    for hex_symbol in message:
+        bin += mapping[hex_symbol]
+    return bin
+
+
 def get_new_packet(sequence):
     packet_type_id = int(sequence[3:6], 2)
     if packet_type_id == 4:
@@ -68,7 +59,7 @@ def get_new_packet(sequence):
         return get_new_operator(sequence, packet_type_id)
 
 
-def get_new_operator(sequence, type):
+def get_new_operator(sequence, type, length=None):
     length_type_id = int(sequence[6], 2)
     if length_type_id == 0:
         length = 22
@@ -154,7 +145,7 @@ def solve_2(input_str, mapping):
 
 
 if __name__ == "__main__":
-    real_input = read_file("data/day_16/input.txt")
+    real_input = read_file("data/day_16/input.txt")[0]
     mapping = get_mapping("data/day_16/mapping.txt")
 
     # Part 1

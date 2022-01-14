@@ -1,11 +1,8 @@
-import os
+from utils import read_file
 
 
-def read_file(input_path: str):
-    input_path = os.path.join(
-        os.path.abspath(os.path.dirname(__file__)), "..", "..", input_path
-    )
-    return [line.strip().split("-") for line in open(input_path).readlines()]
+def parse_input(input_path: str):
+    return [line.strip().split("-") for line in read_file(input_path)]
 
 
 def simulate_path(speed, target_area):
