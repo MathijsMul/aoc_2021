@@ -5,44 +5,35 @@ def parse_input(input_path: str):
     return [line.strip() for line in read_file(input_path)]
 
 
-def solve_1(input_list):
-    return
+def explode(
+    snailfish_str,
+    last_reg_idx=None,
+    last_reg_value=None,
+    next_reg_idx=None,
+    next_reg_value=None,
+    nesting=0
+):
+    """Apply single explode action."""
+    snailfish_list = snailfish_str_to_list(snailfish_str)
 
-
-def solve_2(input_list):
-    return
-
-
-def explode(sf_str):
-    # Apply single explode action
-    sf_list = sf_str_to_list(sf_str)
-
-    nesting = 0
-    last_reg_idx, last_reg_value = None, None
-    next_reg_idx, next_reg_value = None, None
-
-    for idx, char in enumerate(sf_list):
+    for idx, char in enumerate(snailfish_list):
         if char == "[":
             nesting += 1
         elif char == "]":
             nesting -= 1
-        else:
-            try:
-                last_reg_value = int(char)
-                last_reg_idx = idx
-            except ValueError:
-                continue
+        elif isinstance(char, int):
+            last_reg_value, last_reg_idx = char, idx
 
         if nesting == 5:
             try:
-                left = int(sf_list[idx + 1])
-                right = int(sf_list[idx + 3])
+                left = int(snailfish_list[idx + 1])
+                right = int(snailfish_list[idx + 3])
 
                 if last_reg_value is not None:
                     last_reg_value += left
 
                 # Find next reg
-                for idx2, char2 in enumerate(sf_list[idx + 4 :]):
+                for idx2, char2 in enumerate(snailfish_list[idx + 4 :]):
                     try:
                         next_reg_value = int(char2)
                         next_reg_idx = idx2 + idx
@@ -53,7 +44,7 @@ def explode(sf_str):
                 if next_reg_value is not None:
                     next_reg_value += right
 
-                result = sf_list[:idx] + ["0"] + sf_list[idx + 5 :]
+                result = snailfish_list[:idx] + ["0"] + snailfish_list[idx + 5 :]
 
                 if last_reg_idx:
                     result[last_reg_idx] = last_reg_value
@@ -63,15 +54,14 @@ def explode(sf_str):
                 return "".join(map(str, result))
             except ValueError:
                 continue
-    return sf_str
+    return snailfish_str
 
 
-def sf_str_to_list(sf_str):
-    sf_list = list(sf_str)
-    new_list = []
+def snailfish_str_to_list(snailfish_str):
+    snailfish_list = list(snailfish_str)
+    new_list, int_stack = [], []
 
-    int_stack = []
-    for char in sf_list:
+    for char in snailfish_list:
         if char in ["[", "]", ","]:
             if int_stack:
                 new_int = int("".join(int_stack))
@@ -84,67 +74,69 @@ def sf_str_to_list(sf_str):
     return new_list
 
 
-def split(sf_str):
-    # Apply single split action
-    sf_list = sf_str_to_list(sf_str)
-    for idx, char in enumerate(sf_list):
+def split(snailfish_str):
+    """Apply single split action."""
+    snailfish_list = snailfish_str_to_list(snailfish_str)
+    for idx, char in enumerate(snailfish_list):
         try:
             reg_value = int(char)
             if reg_value >= 10:
                 left = reg_value // 2
                 right = left if reg_value % 2 == 0 else left + 1
                 new_pair = [left, right]
-                sf_list[idx] = new_pair
-                return "".join(map(str, sf_list)).replace(" ", "")
+                snailfish_list[idx] = new_pair
+                return "".join(map(str, snailfish_list)).replace(" ", "")
         except ValueError:
             continue
-    return sf_str
+    return snailfish_str
 
 
-def reduce(sf_str):
-    change = True
-
+def reduce(snailfish_str, change=True):
     while change:
-        sf_start = sf_str
-
-        sf_str = explode(sf_str)
-        if sf_start != sf_str:
+        snailfish_start = snailfish_str
+        snailfish_str = explode(snailfish_str)
+        if snailfish_start != snailfish_str:
             continue
 
-        sf_str = split(sf_str)
-        change = sf_start != sf_str
+        snailfish_str = split(snailfish_str)
+        change = snailfish_start != snailfish_str
 
-    return sf_str
+    return snailfish_str
 
 
-def add_single(sf_str1, sf_str2):
-    sf_str = f"[{sf_str1},{sf_str2}]"
-    return reduce(sf_str)
+def add_single(snailfish_str1, snailfish_str2):
+    snailfish_str = f"[{snailfish_str1},{snailfish_str2}]"
+    return reduce(snailfish_str)
 
 
 def add(nrs):
-    sf_nr1 = nrs[0]
-    for idx, sf_nr2 in enumerate(nrs):
+    snailfish_nr1 = nrs[0]
+    for idx, snailfish_nr2 in enumerate(nrs):
         if idx > 0:
-            sf_nr1 = add_single(sf_nr1, sf_nr2)
-    return reduce(sf_nr1)
+            snailfish_nr1 = add_single(snailfish_nr1, snailfish_nr2)
+    return reduce(snailfish_nr1)
 
 
-def compute_magnitude(sf):
-    if isinstance(sf, str):
-        sf = eval(sf)
-    if isinstance(sf, int):
-        return sf
+def compute_magnitude(snailfish):
+    if isinstance(snailfish, str):
+        snailfish = eval(snailfish)
+    if isinstance(snailfish, int):
+        return snailfish
     else:
-        return 3 * compute_magnitude(sf[0]) + 2 * compute_magnitude(sf[1])
+        return 3 * compute_magnitude(snailfish[0]) + 2 * compute_magnitude(snailfish[1])
 
 
-def get_max_magnitude(sfnrs):
+def solve_1(input_list):
+    return compute_magnitude(add(input_list))
+
+
+def solve_2(snailfishnrs):
+    """Compute max magnitude"""
     sums = []
-    for idx, sfnr in enumerate(sfnrs):
-        for idx2, sfnr2 in enumerate(sfnrs):
+    for idx, snailfishnr in enumerate(snailfishnrs):
+        for idx2, snailfishnr2 in enumerate(snailfishnrs):
             if idx != idx2:
-                sum = add_single(sfnr, sfnr2)
+                sum = add_single(snailfishnr, snailfishnr2)
                 sums.append(compute_magnitude(sum))
     return max(sums)
 
@@ -155,12 +147,10 @@ if __name__ == "__main__":
     sample3_input = parse_input("data/day_18/sample3.txt")
     real_input = parse_input("data/day_18/input.txt")
 
-    full_sample_3 = parse_input("data/day_18/sample3.txt")
-    assert compute_magnitude(add(full_sample_3)) == 4140
-
-    real_input = parse_input("data/day_18/input.txt")
-    assert compute_magnitude(add(real_input)) == 4137
+    # Part 1
+    assert solve_1(sample3_input) == 4140
+    assert solve_1(real_input) == 4137
 
     # Part 2
-    assert get_max_magnitude(full_sample_3) == 3993
-    assert get_max_magnitude(real_input) == 4573
+    assert solve_2(sample3_input) == 3993
+    assert solve_2(real_input) == 4573
