@@ -42,6 +42,8 @@ def compare_2_scanners(scanner_distances, scanner_distances2, min_overlapping=12
     """
     for dist_idx, distances in scanner_distances.items():
         for dist_idx2, distances2 in scanner_distances2.items():
+            if dist_idx2 <= dist_idx:
+                continue
             overlap_size = (
                 distances.shape[0]
                 + distances2.shape[0]
@@ -53,13 +55,13 @@ def compare_2_scanners(scanner_distances, scanner_distances2, min_overlapping=12
                 return dist_idx, dist_idx2
 
 
-def compare_all_scanners(input_array, scanner_dists, min_overlapping):
+def compare_all_scanners(input_array, rel_dists, abs_dists, min_overlapping):
     rel_positions = []
     mappings = defaultdict(dict)
     rotation_options = get_rotation_options()
 
-    for idx1, scanner_distances in scanner_dists.items():
-        for idx2, scanner_distances2 in scanner_dists.items():
+    for idx1, scanner_distances in rel_dists.items():
+        for idx2, scanner_distances2 in rel_dists.items():
             if idx1 == idx2:
                 continue
             overlap = compare_2_scanners(
@@ -67,17 +69,15 @@ def compare_all_scanners(input_array, scanner_dists, min_overlapping):
             )
             if not overlap:
                 continue
-            exact_dists1, exact_dists2_init = (
-                get_distances(input_array[idx1]),
-                get_distances(input_array[idx2]),
-            )
 
             for idx_rot, rotation_option in enumerate(rotation_options):
-                exact_dists2 = apply_rotation(exact_dists2_init, rotation_option)
-                success = compare_2_scanners(exact_dists1, exact_dists2)
+                exact_dists2 = apply_rotation(abs_dists[idx2], rotation_option)
+                success = compare_2_scanners(abs_dists[idx1], exact_dists2)
 
                 if success:
                     print(f"Found right rotation for scanners {idx1, idx2}")
+
+                    # TODO fix apply_rotation_method
                     s2_rotated = apply_rotation(
                         {0: input_array[idx2]}, rotation_option
                     )[0]
@@ -91,10 +91,10 @@ def compare_all_scanners(input_array, scanner_dists, min_overlapping):
     return rel_positions, mappings
 
 
-def get_all_rel_distances(scanners):
+def get_all_distances(scanners, abs_sort=False):
     dists = {}
     for idx, s in enumerate(scanners):
-        dists[idx] = get_distances(s, abs_sort=True)
+        dists[idx] = get_distances(s, abs_sort=abs_sort)
     return dists
 
 
@@ -114,7 +114,7 @@ def get_rotation_options(num_dimensions=3):
     )
 
 
-def get_max_manhattan_dist(coordinates, max_mdist= -1):
+def get_max_manhattan_dist(coordinates, max_mdist=-1):
     scanner_positions = [c[1][-1] for c in coordinates]
     for s1 in scanner_positions:
         for s2 in scanner_positions:
@@ -155,9 +155,14 @@ def map_scanners(input_array, to_be_mapped, rel_positions, mappings):
 
 
 def solve(input_array, min_num_overlapping=12):
-    all_rel_dists = get_all_rel_distances(input_array)
+    all_abs_dists = get_all_distances(input_array)
+    all_rel_dists = {
+        k: {kk: np.sort(np.abs(vv)) for kk, vv in v.items()}
+        for k, v in all_abs_dists.items()
+    }
+    # all_rel_dists = get_all_rel_distances(input_array)
     rel_positions, mappings = compare_all_scanners(
-        input_array, all_rel_dists, min_num_overlapping
+        input_array, all_rel_dists, all_abs_dists, min_num_overlapping
     )
 
     to_be_mapped = list(set([i for j in rel_positions for i in j[0]]))
