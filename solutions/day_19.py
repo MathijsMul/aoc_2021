@@ -2,7 +2,6 @@ import itertools
 from collections import defaultdict
 
 import numpy as np
-import time
 
 from utils import read_file
 
@@ -25,17 +24,7 @@ def parse_input(input_path: str):
     return scanner_array
 
 
-def get_distances(observations, abs_sort=False):
-    rel_dists = {}
-    for idx, obs in enumerate(observations):
-        dists = observations - obs
-        if abs_sort:
-            dists = np.sort(np.abs(dists))
-        rel_dists[idx] = dists
-    return rel_dists
-
-
-def compare_2_scanners(scanner_distances, scanner_distances2, min_overlapping=12):
+def find_overlap(scanner_distances, scanner_distances2, min_overlapping=12):
     """
     Determine if two scanners have enough overlapping points by comparing relative internal
     distances.
@@ -55,57 +44,68 @@ def compare_2_scanners(scanner_distances, scanner_distances2, min_overlapping=12
                 return dist_idx, dist_idx2
 
 
-def compare_all_scanners(input_array, rel_dists, abs_dists, min_overlapping):
-    rel_positions = []
+def compare_all_scanners(input_array):
+    """
+    Compare all scanners, and if there is sufficient overlap compute the rotation and translation
+    between them.
+    """
+    abs_dists, rel_dists = get_all_distances(input_array)
     mappings = defaultdict(dict)
     rotation_options = get_rotation_options()
 
-    for idx1, scanner_distances in rel_dists.items():
-        for idx2, scanner_distances2 in rel_dists.items():
-            if idx1 == idx2:
+    for idx1, distances1 in rel_dists.items():
+        for idx2, distances2 in rel_dists.items():
+            if idx2 <= idx1 or not find_overlap(distances1, distances2):
                 continue
-            overlap = compare_2_scanners(
-                scanner_distances, scanner_distances2, min_overlapping
+
+            mappings[idx2][idx1] = get_transform(
+                rotation_options, abs_dists, input_array, idx1, idx2
             )
-            if not overlap:
-                continue
-
-            for idx_rot, rotation_option in enumerate(rotation_options):
-                exact_dists2 = apply_rotation(abs_dists[idx2], rotation_option)
-                success = compare_2_scanners(abs_dists[idx1], exact_dists2)
-
-                if success:
-                    print(f"Found right rotation for scanners {idx1, idx2}")
-
-                    # TODO fix apply_rotation_method
-                    s2_rotated = apply_rotation(
-                        {0: input_array[idx2]}, rotation_option
-                    )[0]
-                    diff = input_array[idx1][success[0]] - s2_rotated[success[1]]
-                    mappings[idx2][idx1] = (rotation_option, diff)
-
-                    print(f"Scanner {idx2} relative to scanner {idx1}: {diff}")
-                    rel_positions.append([(idx1, idx2), diff])
-                    break
-
-    return rel_positions, mappings
+            mappings[idx1][idx2] = get_transform(
+                rotation_options, abs_dists, input_array, idx2, idx1
+            )
+    return mappings
 
 
-def get_all_distances(scanners, abs_sort=False):
-    dists = {}
-    for idx, s in enumerate(scanners):
-        dists[idx] = get_distances(s, abs_sort=abs_sort)
-    return dists
+def get_transform(rotation_options, abs_dists, input_array, idx1, idx2):
+    """Compute rotation and translation between two scanners."""
+    for rotation in rotation_options:
+        exact_dists2 = rotate_all(abs_dists[idx2], rotation)
+        success = find_overlap(abs_dists[idx1], exact_dists2)
+
+        if success:
+            s2_rotated = apply_rotation(input_array[idx2], rotation)
+            translation = input_array[idx1][success[0]] - s2_rotated[success[1]]
+            print(f"Rotation, translation for {idx1, idx2}: {rotation}, {translation}")
+            return rotation, translation
 
 
-def apply_rotation(dist_dict, rotation):
+def get_all_distances(scanners):
+    rel_dists, abs_dists = defaultdict(dict), defaultdict(dict)
+    for scanner_idx, observations in enumerate(scanners):
+        for obs_idx, observation in enumerate(observations):
+            abs_dist = observations - observation
+            abs_dists[scanner_idx][obs_idx] = abs_dist
+            rel_dists[scanner_idx][obs_idx] = np.sort(np.abs(abs_dist))
+    return abs_dists, rel_dists
+
+
+def rotate_all(dist_dict, rotation):
     out_dict = dict()
     for loc_idx, dists in dist_dict.items():
-        out_dict[loc_idx] = dists[:, rotation[0]] * rotation[1]
+        out_dict[loc_idx] = apply_rotation(dists, rotation)
     return out_dict
 
 
+def apply_rotation(array, rotation):
+    return array[:, rotation[0]] * rotation[1]
+
+
 def get_rotation_options(num_dimensions=3):
+    """
+    Compute all possible rotations, represented as tuples of permutations of axes and inversions
+    of axis directions.
+    """
     return list(
         itertools.product(
             itertools.permutations(range(num_dimensions), num_dimensions),
@@ -115,72 +115,60 @@ def get_rotation_options(num_dimensions=3):
 
 
 def get_max_manhattan_dist(coordinates, max_mdist=-1):
+    """Compute maximum Manhattan distance between any pair of positions."""
     scanner_positions = [c[1][-1] for c in coordinates]
-    for s1 in scanner_positions:
-        for s2 in scanner_positions:
+    for idx1, s1 in enumerate(scanner_positions):
+        for s2 in scanner_positions[idx1+1:]:
             manhattan_dist = sum(np.abs(s1 - s2))
             if manhattan_dist > max_mdist:
                 max_mdist = manhattan_dist
     return max_mdist
 
 
-def map_scanners(input_array, to_be_mapped, rel_positions, mappings):
-    coords = [(i, np.vstack([input_array[i], [0, 0, 0]])) for i in to_be_mapped]
-    prio = 0
+def map_scanners(input_array, mappings, prio=0):
+    """
+    Map observations of scanners into each other's frame of reference in order to position all
+    beacons in the same space, relative to the first scanner.
+    """
+    scanner_pairs = [(idx1, idx2) for idx1 in mappings for idx2 in mappings[idx1]]
+    to_be_mapped = set([idx for pair in scanner_pairs for idx in pair])
+    coords = [(idx, np.vstack([input_array[idx], [0, 0, 0]])) for idx in to_be_mapped]
     mapped_to_zero = {0: prio}
 
-    while any(i[0] != 0 for i in coords):
+    while any(base_idx != 0 for base_idx, _ in coords):
         prio += 1
-        for idx, c in enumerate(coords):
-            rot_idx = c[0]
-            if rot_idx == 0:
+        for scanner_idx, (base_idx, observations) in enumerate(coords):
+            if base_idx == 0:
                 continue
-            for pair, diff in sorted(
-                rel_positions, key=lambda i: mapped_to_zero.get(i[0][0], 10000)
+            for idx1, idx2 in sorted(
+                scanner_pairs, key=lambda i: mapped_to_zero.get(i[0], prio + 1)
             ):
-                if pair[1] in mapped_to_zero and coords[idx][0] == pair[0]:
+                if idx2 != base_idx or idx2 == idx1:
                     continue
-                elif pair[1] == rot_idx:
-                    print(f"Pair {pair} with diff {diff}")
-                    print(f"Mapping {pair[1]} to {pair[0]}")
-                    rotation_option, diff_ = mappings[pair[1]][pair[0]]
-
-                    beacons_mapped = (
-                        apply_rotation({0: c[1]}, rotation_option)[0] + diff
-                    )
-                    coords[idx] = (pair[0], beacons_mapped)
-                    mapped_to_zero[pair[1]] = prio
-                    break
+                rotation, translation = mappings[idx2][idx1]
+                beacons_mapped = apply_rotation(observations, rotation) + translation
+                coords[scanner_idx] = (idx1, beacons_mapped)
+                mapped_to_zero[idx2] = prio
+                break
     return coords
 
 
-def solve(input_array, min_num_overlapping=12):
-    all_abs_dists = get_all_distances(input_array)
-    all_rel_dists = {
-        k: {kk: np.sort(np.abs(vv)) for kk, vv in v.items()}
-        for k, v in all_abs_dists.items()
-    }
-    # all_rel_dists = get_all_rel_distances(input_array)
-    rel_positions, mappings = compare_all_scanners(
-        input_array, all_rel_dists, all_abs_dists, min_num_overlapping
-    )
+def get_unique_beacons(positions):
+    """Compute nr of unique beacons."""
+    return np.unique(
+        np.concatenate([position[1][:-1] for position in positions]), axis=0
+    ).shape[0]
 
-    to_be_mapped = list(set([i for j in rel_positions for i in j[0]]))
-    coords = map_scanners(input_array, to_be_mapped, rel_positions, mappings)
 
-    num_beacons = np.unique(np.concatenate([c[1][:-1] for c in coords]), axis=0).shape[
-        0
-    ]
-    max_mdist = get_max_manhattan_dist(coords)
-    return num_beacons, max_mdist
+def solve(input_array):
+    mappings = compare_all_scanners(input_array)
+    positions = map_scanners(input_array, mappings)
+    return get_unique_beacons(positions), get_max_manhattan_dist(positions)
 
 
 if __name__ == "__main__":
     sample1_input = parse_input("data/day_19/sample1.txt")
     real_input = parse_input("data/day_19/input.txt")
 
-    start = time.time()
     assert solve(sample1_input) == (79, 3621)
-    end = time.time()
-    print(f"Duration: {end - start}")
-    # assert solve(real_input) == (396, 11828)
+    assert solve(real_input) == (396, 11828)
