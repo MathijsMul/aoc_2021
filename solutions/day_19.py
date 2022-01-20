@@ -2,6 +2,7 @@ import itertools
 from collections import defaultdict
 
 import numpy as np
+import time
 
 from utils import read_file
 
@@ -59,6 +60,8 @@ def compare_all_scanners(input_array, scanner_dists, min_overlapping):
 
     for idx1, scanner_distances in scanner_dists.items():
         for idx2, scanner_distances2 in scanner_dists.items():
+            if idx1 == idx2:
+                continue
             overlap = compare_2_scanners(
                 scanner_distances, scanner_distances2, min_overlapping
             )
@@ -157,10 +160,6 @@ def solve(input_array, min_num_overlapping=12):
         input_array, all_rel_dists, min_num_overlapping
     )
 
-    # rel_positions, mappings = compare_all_scanners(
-    #     input_array, all_rel_dists, min_num_overlapping
-    # )
-
     to_be_mapped = list(set([i for j in rel_positions for i in j[0]]))
     coords = map_scanners(input_array, to_be_mapped, rel_positions, mappings)
 
@@ -175,5 +174,8 @@ if __name__ == "__main__":
     sample1_input = parse_input("data/day_19/sample1.txt")
     real_input = parse_input("data/day_19/input.txt")
 
+    start = time.time()
     assert solve(sample1_input) == (79, 3621)
+    end = time.time()
+    print(f"Duration: {end - start}")
     # assert solve(real_input) == (396, 11828)
