@@ -1,25 +1,22 @@
 from __future__ import annotations
 
-import os
 from collections import Counter
 from typing import List, Union, Callable
 
+from utils import read_file
 
-def read_file(input_path: str):
-    input_path = os.path.join(
-        os.path.abspath(os.path.dirname(__file__)), "..", "..", input_path
-    )
+
+def parse_input(input_path: str):
     data = []
-    with open(input_path) as file:
-        for line in file.readlines():
-            command = []
-            for segment in line.strip().split():
-                try:
-                    segment = int(segment)
-                except ValueError:
-                    pass
-                command.append(segment)
-            data.append(command)
+    for line in read_file(input_path):
+        command = []
+        for segment in line.strip().split():
+            try:
+                segment = int(segment)
+            except ValueError:
+                pass
+            command.append(segment)
+        data.append(command)
     return data
 
 
@@ -142,6 +139,6 @@ def solve_2(commands):
 
 
 if __name__ == "__main__":
-    real_input = read_file("data/day_24/input.txt")
+    real_input = parse_input("data/day_24/input.txt")
     assert solve_1(real_input) == 92915979999498
     assert solve_2(real_input) == 21611513911181
