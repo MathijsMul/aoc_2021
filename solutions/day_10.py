@@ -32,19 +32,18 @@ def solve(input_list):
         for idx, char in enumerate(line):
             if char in OPEN_TO_CLOSE:
                 close_chars.append(OPEN_TO_CLOSE[char])
+            elif char == close_chars[-1]:
+                close_chars.pop()
             else:
-                if char == close_chars[-1]:
-                    close_chars.pop()
-                else:
-                    # Corrupt line
-                    corrupt_scores.append(CORRUPT_SCORES[char])
-                    break
-            if idx == len(line) - 1:
-                if len(close_chars) > 0:
-                    # Incomplete line
-                    completion = close_chars[::-1]
-                    score = score_2([INCOMPLETE_SCORES[cc] for cc in completion])
-                    incomplete_scores.append(score)
+                # Corrupt line
+                corrupt_scores.append(CORRUPT_SCORES[char])
+                break
+
+            if idx == len(line) - 1 and len(close_chars) > 0:
+                # Incomplete line
+                completion = close_chars[::-1]
+                score = score_2([INCOMPLETE_SCORES[cc] for cc in completion])
+                incomplete_scores.append(score)
 
     corrupt_score = sum(corrupt_scores)
     incomplete_score = sorted(incomplete_scores)[int((len(incomplete_scores) - 1) / 2)]
