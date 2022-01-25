@@ -71,4 +71,4 @@ if __name__ == "__main__":
 
     # Part 2
     assert sample_output_2 == 112
-    assert real_output_2 == 5844, real_output_2
+    assert real_output_2 == 5844

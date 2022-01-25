@@ -156,7 +156,7 @@ if __name__ == "__main__":
     assert solve_1(real_input, mapping) == 1014
 
     # Part 2
-    assert solve_2("C200B40A82", mapping) == 3, solve_2("C200B40A82", mapping)
+    assert solve_2("C200B40A82", mapping) == 3
     assert solve_2("04005AC33890", mapping) == 54
     assert solve_2("880086C3E88112", mapping) == 7
     assert solve_2("CE00C43D881120", mapping) == 9

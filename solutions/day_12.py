@@ -68,13 +68,13 @@ if __name__ == "__main__":
     real_input = parse_input("data/day_12/input.txt")
 
     # Part 1
-    assert solve_1(sample1_input) == 10, solve_1(sample1_input)
-    assert solve_1(sample2_input) == 19, solve_1(sample2_input)
-    assert solve_1(sample3_input) == 226, solve_1(sample3_input)
+    assert solve_1(sample1_input) == 10
+    assert solve_1(sample2_input) == 19
+    assert solve_1(sample3_input) == 226
     assert solve_1(real_input) == 4241
 
     # Part 2
-    assert solve_2(sample1_input) == 36, solve_2(sample1_input)
-    assert solve_2(sample2_input) == 103, solve_2(sample2_input)
-    assert solve_2(sample3_input) == 3509, solve_2(sample3_input)
+    assert solve_2(sample1_input) == 36
+    assert solve_2(sample2_input) == 103
+    assert solve_2(sample3_input) == 3509
     assert solve_2(real_input) == 122134

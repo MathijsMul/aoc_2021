@@ -75,9 +75,9 @@ if __name__ == "__main__":
     real_input = parse_input("data/day_15/input.txt")
 
     # Part 1
-    assert solve_1(sample1_input) == 40, solve_1(sample1_input)
+    assert solve_1(sample1_input) == 40
     assert solve_1(real_input) == 685
 
     # Part 2
-    assert solve_2(sample1_input) == 315, solve_2(sample1_input)
+    assert solve_2(sample1_input) == 315
     assert solve_2(real_input) == 2995

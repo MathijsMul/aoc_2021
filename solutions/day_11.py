@@ -54,11 +54,11 @@ if __name__ == "__main__":
     # Part 1
     sample_input = parse_input("data/day_11/sample.txt")
     real_input = parse_input("data/day_11/input.txt")
-    assert solve_1(sample_input) == 1656, solve_1(sample_input)
+    assert solve_1(sample_input) == 1656
     assert solve_1(real_input) == 1686
 
     # Part 2
     sample_input = parse_input("data/day_11/sample.txt")
     real_input = parse_input("data/day_11/input.txt")
-    assert solve_2(sample_input) == 195, solve_2(sample_input)
-    assert solve_2(real_input) == 360, solve_2(real_input)
+    assert solve_2(sample_input) == 195
+    assert solve_2(real_input) == 360
