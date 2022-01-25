@@ -24,57 +24,49 @@ def get_score(grid):
     return len(np.argwhere(grid >= 2))
 
 
-def fill_grid_straight(grid, input):
+def get_straight_path(loc1, loc2, axis):
+    [start, end] = sorted([loc1, loc2], key=lambda coords: coords[axis])
+    order = axis - (axis == 0)
+    return [
+        [start[1 - axis], other][::order] for other in range(start[axis], end[axis] + 1)
+    ]
+
+
+def get_diagonal_path(loc1, loc2):
+    xx, xy = zip(*get_straight_path(loc1, loc2, 0))
+    yx, yy = zip(*get_straight_path(loc1, loc2, 1))
+
+    if [xx[0], xy[0]] != [yx[0], yy[0]]:
+        yy = list(yy)[::-1]
+
+    return list(zip(xx, yy))
+
+
+def get_path(vent, diagonals):
+    for axis in [0, 1]:
+        if vent[0, axis] == vent[1, axis]:
+            return get_straight_path(vent[0], vent[1], 1 - axis)
+    if diagonals:
+        return get_diagonal_path(vent[0], vent[1])
+
+
+def fill_grid(grid, input, diagonals=False):
     for vent in input:
-        # Select only straight lines
-        compared = np.argwhere(vent[0] - vent[1] == 0)
-        if len(compared) > 0:
-            axis = compared[0][0]
-            path1 = np.arange(min(vent[:, 1 - axis]), max(vent[:, 1 - axis]) + 1)
-            path2 = np.full(path1.size, vent[0, axis])
-            paths = [path1, path2]
-
-            for i in range(path1.size):
-                grid[paths[1 - axis][i], paths[axis][i]] += 1
-
-    return get_score(grid)
-
-
-def fill_grid(grid, input):
-    for vent in input:
-        loc1, loc2 = vent[0], vent[1]
-
-        if loc1[0] == loc2[0]:
-            [start, end] = sorted([loc1, loc2], key=lambda coords: coords[1])
-            path = [[start[0], y] for y in range(start[1], end[1] + 1)]
-        elif loc1[1] == loc2[1]:
-            [start, end] = sorted([loc1, loc2], key=lambda coords: coords[0])
-            path = [[x, start[1]] for x in range(start[0], end[0] + 1)]
-        else:
-            xorder = sorted([loc1, loc2], key=lambda coords: coords[0])
-            xpath = list(range(xorder[0][0], xorder[1][0] + 1))
-
-            yorder = sorted([loc1, loc2], key=lambda coords: coords[1])
-            ypath = list(range(yorder[0][1], yorder[1][1] + 1))
-            if xorder[0].tolist() != yorder[0].tolist():
-                ypathrev = list(ypath)[::-1]
-                ypath = ypathrev
-
-            path = list(zip(xpath, ypath))
-        for loc in path:
-            grid[loc[0]][loc[1]] += 1
-
+        path = get_path(vent, diagonals)
+        if path:
+            for loc in path:
+                grid[loc[0], loc[1]] += 1
     return get_score(grid)
 
 
 def solve_1(input_list):
     grid = get_grid(input_list)
-    return fill_grid_straight(grid, input_list)
+    return fill_grid(grid, input_list)
 
 
 def solve_2(input_list):
     grid = get_grid(input_list)
-    return fill_grid(grid, input_list)
+    return fill_grid(grid, input_list, diagonals=True)
 
 
 if __name__ == "__main__":
@@ -85,6 +77,6 @@ if __name__ == "__main__":
     assert solve_1(sample_input) == 5
     assert solve_1(real_input) == 6283
 
-    # # Part 2
+    # Part 2
     assert solve_2(sample_input) == 12, solve_2(sample_input)
     assert solve_2(real_input) == 18864
